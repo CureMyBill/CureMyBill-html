@@ -4,3 +4,5 @@ python-multipart>=0.0.9
 anthropic>=0.40
 pandas>=2.2
 reportlab>=4.2
+requests>=2.31
+openpyxl>=3.1
