@@ -54,7 +54,9 @@ def find_rvu_dataframe(zf: zipfile.ZipFile) -> pd.DataFrame:
     names = zf.namelist()
     log(f"Zip contains: {names}")
 
-    candidates = [n for n in names if "PPRRVU" in n.upper()]
+    candidates = [n for n in names if "PPRRVU" in n.upper() and n.lower().endswith(".csv")]
+    if not candidates:
+        candidates = [n for n in names if "PPRRVU" in n.upper()]
     if not candidates:
         candidates = [n for n in names if n.lower().endswith((".csv", ".xlsx", ".xls"))]
     if not candidates:
@@ -64,20 +66,45 @@ def find_rvu_dataframe(zf: zipfile.ZipFile) -> pd.DataFrame:
     log(f"Using file inside zip: {name}")
     raw = zf.read(name)
 
-    reader = pd.read_csv if name.lower().endswith(".csv") else pd.read_excel
+    # CMS's PPRRVU CSV wraps each column header across TWO physical rows
+    # (e.g. "STATUS" then "CODE" directly below it). Read a chunk with no
+    # header, find the row containing "HCPCS", and merge it with the row
+    # directly above to reconstruct full column names.
+    preview = pd.read_csv(io.BytesIO(raw), header=None, nrows=20, dtype=str)
 
-    for skip in (0, 1, 2, 3, 8, 9, 10, 11):
-        try:
-            df = reader(io.BytesIO(raw), skiprows=skip, dtype=str)
-            cols = [str(c).strip().upper() for c in df.columns]
-            if any("HCPCS" in c for c in cols):
-                df.columns = cols
-                log(f"Found header row at skiprows={skip}: {cols[:12]}")
-                return df
-        except Exception:
-            continue
+    header_row_idx = None
+    for i in range(len(preview)):
+        row_vals = [str(v).strip().upper() for v in preview.iloc[i].tolist()]
+        if "HCPCS" in row_vals:
+            header_row_idx = i
+            break
 
-    raise RuntimeError("Could not locate a valid header row (looking for an 'HCPCS' column).")
+    if header_row_idx is None:
+        raise RuntimeError("Could not find a row containing 'HCPCS' in the first 20 rows.")
+
+    log(f"Found 'HCPCS' header row at index {header_row_idx}")
+
+    top_row = preview.iloc[header_row_idx - 1] if header_row_idx > 0 else None
+    bottom_row = preview.iloc[header_row_idx]
+
+    combined_cols = []
+    for j in range(len(bottom_row)):
+        bottom = str(bottom_row.iloc[j]).strip()
+        if bottom.lower() == "nan":
+            bottom = ""
+        top = ""
+        if top_row is not None:
+            top = str(top_row.iloc[j]).strip()
+            if top.lower() == "nan":
+                top = ""
+        combined = f"{top} {bottom}".strip().upper()
+        combined_cols.append(combined if combined else f"COL_{j}")
+
+    log(f"Reconstructed column names: {combined_cols}")
+
+    df = pd.read_csv(io.BytesIO(raw), skiprows=header_row_idx + 1, header=None, dtype=str)
+    df.columns = combined_cols[: len(df.columns)]
+    return df
 
 
 def find_col(df: pd.DataFrame, *candidates: str) -> str:
@@ -101,12 +128,19 @@ def to_float(x):
 
 
 def build_from_pfs(df: pd.DataFrame) -> pd.DataFrame:
-    hcpcs_col = find_col(df, "HCPCS", "HCPCS CODE")
-    desc_col = find_col(df, "DESCRIPTION", "SHORT DESCRIPTION", "SHORT DESC")
+    hcpcs_col = find_col(df, "HCPCS")
+    desc_col = find_col(df, "DESCRIPTION")
     status_col = find_col(df, "STATUS CODE", "STATUS")
     work_col = find_col(df, "WORK RVU")
-    nonfac_pe_col = find_col(df, "NON-FAC PE RVU", "NONFAC PE RVU", "NON FACILITY PE RVU")
+    nonfac_pe_col = find_col(
+        df, "NON-FACILITY PE RVU", "NON FACILITY PE RVU", "NONFACILITY PE RVU", "NON-FAC PE RVU"
+    )
     mp_col = find_col(df, "MP RVU")
+
+    log(
+        f"Column mapping: HCPCS={hcpcs_col!r} DESC={desc_col!r} STATUS={status_col!r} "
+        f"WORK={work_col!r} NONFAC_PE={nonfac_pe_col!r} MP={mp_col!r}"
+    )
 
     rows = []
     skipped_inactive, skipped_zero, skipped_missing = 0, 0, 0
