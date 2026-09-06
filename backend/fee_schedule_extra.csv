@@ -1,0 +1,41 @@
+cpt_code,description,standard_price
+80048,Basic metabolic panel,8
+80053,Comprehensive metabolic panel,10
+80061,Lipid panel,14
+80076,Hepatic function panel,11
+84443,Thyroid stimulating hormone (TSH),22
+82947,Glucose blood test,5
+82962,Glucose fingerstick test,4
+85025,Complete blood count (CBC) with differential,9
+85027,Complete blood count (CBC) without differential,5
+85610,Prothrombin time (PT/INR),5
+85730,Partial thromboplastin time (PTT),8
+84484,Troponin,17
+83880,BNP (B-type natriuretic peptide),36
+85379,D-dimer,15
+81001,Urinalysis with microscopy,5
+81003,Urinalysis automated without microscopy,3
+81025,Urine pregnancy test,10
+87880,Rapid strep test,17
+87804,Rapid influenza test,17
+87428,Rapid COVID/flu combo test,25
+87086,Urine culture,12
+J7030,Infusion normal saline 1000cc,5
+J7040,Infusion normal saline sterile 50ml,1
+J7050,Infusion normal saline 250cc,3
+J7120,Ringer's lactate infusion up to 1000cc,4
+J2405,Ondansetron injection 4mg (anti-nausea),3
+J1885,Ketorolac injection 15mg (pain/anti-inflammatory),3
+J0696,Ceftriaxone injection 250mg (antibiotic),4
+J1200,Diphenhydramine injection 50mg (antihistamine),1
+J1100,Dexamethasone injection 1mg,1
+J2270,Morphine sulfate injection up to 10mg,2
+J1170,Hydromorphone injection up to 4mg,3
+J3420,Vitamin B12 injection up to 1000mcg,1
+J1580,Gentamicin injection up to 80mg,3
+J2001,Lidocaine HCl for IV infusion 10mg,4
+J0670,Mepivacaine injection up to 10ml,2
+J1642,Heparin injection per 1000 units,1
+J1940,Furosemide injection up to 20mg,1
+J0702,Betamethasone injection per 3mg,4
+J3010,Fentanyl citrate injection 0.1mg,2
