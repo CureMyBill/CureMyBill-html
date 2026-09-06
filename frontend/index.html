@@ -34,12 +34,15 @@
   .wrap{max-width:1160px; margin:0 auto; padding:0 28px;}
 
   header{position:sticky; top:0; z-index:50; background:rgba(247,243,234,0.92); backdrop-filter:blur(8px); border-bottom:1px solid var(--line);}
-  nav.wrap{display:flex; align-items:center; justify-content:space-between; padding:18px 28px;}
+  nav.wrap{display:flex; align-items:center; justify-content:space-between; padding:18px 28px; gap:16px;}
   .brand{display:flex; align-items:center; gap:10px; font-family:var(--display); font-weight:700; font-size:1.25rem;}
   .seal{width:34px; height:34px; flex-shrink:0;}
-  .nav-links{display:flex; align-items:center; gap:34px; font-size:0.95rem;}
+  .nav-links{display:flex; align-items:center; gap:28px; font-size:0.95rem;}
   .nav-links a{opacity:0.8; transition:opacity .15s ease;}
   .nav-links a:hover{opacity:1;}
+  .lang-switch{display:flex; border:1.5px solid var(--ink); border-radius:8px; overflow:hidden; font-size:0.82rem; font-weight:600;}
+  .lang-switch button{padding:6px 12px; background:var(--white); border:none; color:var(--ink);}
+  .lang-switch button.active{background:var(--ink); color:var(--paper);}
   .btn{display:inline-flex; align-items:center; gap:8px; border-radius:8px; font-weight:600; font-size:0.95rem;
        padding:12px 22px; border:1.5px solid var(--ink); transition:transform .15s ease, box-shadow .15s ease;}
   .btn-primary{background:var(--ink); color:var(--paper); border-color:var(--ink);}
@@ -54,7 +57,7 @@
 
   .hero{padding:76px 0 90px;}
   .hero-grid{display:grid; grid-template-columns:1.05fr 0.95fr; gap:64px; align-items:center;}
-  .hero h1{font-size:2.65rem; letter-spacing:-0.01em;}
+  .hero h1{font-size:2.5rem; letter-spacing:-0.01em;}
   .hero .figure-num{color:var(--stamp);}
   .hero p.lede{margin-top:22px; font-size:1.15rem; color:var(--ink-soft); max-width:46ch;}
   .hero-actions{margin-top:34px; display:flex; align-items:center; gap:18px; flex-wrap:wrap;}
@@ -95,7 +98,7 @@
   .citation-section{background:var(--paper-deep); border-top:1px solid var(--line); border-bottom:1px solid var(--line);}
   .citation{max-width:720px; margin:0 auto; text-align:center;}
   .citation h2{font-size:1.8rem; margin-bottom:22px;}
-  .citation blockquote{font-family:var(--display); font-size:1.35rem; line-height:1.5; color:var(--ink); border-left:3px solid var(--stamp); padding-left:22px; text-align:left; margin:0 0 22px;}
+  .citation blockquote{font-family:var(--display); font-size:1.3rem; line-height:1.5; color:var(--ink); border-left:3px solid var(--stamp); padding-left:22px; text-align:left; margin:0 0 22px;}
   .citation p.note{color:var(--ink-soft); font-size:0.98rem; text-align:left; padding-left:22px;}
 
   #app-section{background:var(--white); border-top:1px solid var(--line); border-bottom:1px solid var(--line);}
@@ -149,6 +152,7 @@
   .spinner{display:inline-block; width:16px; height:16px; border:2px solid rgba(0,0,0,0.15); border-top-color:var(--stamp); border-radius:50%; animation:spin .7s linear infinite; vertical-align:middle; margin-right:8px;}
   @keyframes spin{to{transform:rotate(360deg);}}
   .hidden{display:none !important;}
+  .letter-lang-note{font-size:0.78rem; color:var(--ink-soft); font-style:italic; margin-bottom:10px;}
 
   .faq-list{max-width:680px; margin:0 auto;}
   details{border-bottom:1px solid var(--line); padding:18px 0;}
@@ -174,7 +178,7 @@
     .pricing-grid{grid-template-columns:1fr;}
     .form-grid{grid-template-columns:1fr;}
     .stat-grid{grid-template-columns:1fr;}
-    .hero h1{font-size:2rem;}
+    .hero h1{font-size:1.8rem;}
     .app-card{padding:20px;}
   }
 </style>
@@ -192,23 +196,27 @@
       CureMyBill
     </div>
     <div class="nav-links">
-      <a href="#how">How it works</a>
-      <a href="#medicare">Why Medicare's rate</a>
-      <a href="#app-section">Pricing</a>
-      <a href="#faq">FAQ</a>
+      <a href="#how" data-i18n="nav_how">How it works</a>
+      <a href="#medicare" data-i18n="nav_medicare">Why Medicare's rate</a>
+      <a href="#app-section" data-i18n="nav_pricing">Pricing</a>
+      <a href="#faq" data-i18n="nav_faq">FAQ</a>
     </div>
-    <a class="btn btn-primary nav-cta" href="#app-section">Check your bill</a>
+    <div class="lang-switch" role="group" aria-label="Language">
+      <button id="lang-en" onclick="setLang('en')">English</button>
+      <button id="lang-es" onclick="setLang('es')">Español</button>
+    </div>
+    <a class="btn btn-primary nav-cta" href="#app-section" data-i18n="nav_cta">Check your bill</a>
   </nav>
 </header>
 
 <section class="hero">
   <div class="wrap hero-grid">
     <div>
-      <h1>The ER charged <span class="figure-num">$2,450</span>.<br>Medicare pays <span class="figure-num">$171</span> for the same visit.</h1>
-      <p class="lede">Upload your bill. We check every line against Medicare's published national rate and draft a letter asking your hospital to explain the difference.</p>
+      <h1 data-i18n="hero_h1">The ER charged <span class="figure-num">$2,450</span>.<br>Medicare pays <span class="figure-num">$171</span> for the same visit.</h1>
+      <p class="lede" data-i18n="hero_lede">Upload your bill. We check every line against Medicare's published national rate and draft a letter asking your hospital to explain the difference.</p>
       <div class="hero-actions">
-        <a class="btn btn-primary" href="#app-section">Check your bill free</a>
-        <span class="trust-line">No card needed for the audit. <strong>Takes about a minute.</strong></span>
+        <a class="btn btn-primary" href="#app-section" data-i18n="hero_cta">Check your bill free</a>
+        <span class="trust-line" data-i18n="hero_trust">No card needed for the audit. <strong>Takes about a minute.</strong></span>
       </div>
     </div>
     <div class="bill-wrap">
@@ -218,16 +226,16 @@
           <div class="meta">Acct #987654321<br>05/12/2026</div>
         </div>
         <table class="bill-rows">
-          <thead><tr><th>CPT</th><th>Description</th><th>Billed</th></tr></thead>
+          <thead><tr><th data-i18n="bill_cpt">CPT</th><th data-i18n="bill_desc">Description</th><th data-i18n="bill_billed">Billed</th></tr></thead>
           <tbody>
-            <tr><td class="mono">99213</td><td>Office visit, level 3</td><td class="amt">$180.00</td></tr>
-            <tr class="flagged"><td class="mono">99285</td><td>ER visit, level 5</td><td class="amt">$2,450.00</td></tr>
-            <tr><td class="mono">85025</td><td>Complete blood count</td><td class="amt">$95.00</td></tr>
+            <tr><td class="mono">99213</td><td data-i18n="bill_row1">Office visit, level 3</td><td class="amt">$180.00</td></tr>
+            <tr class="flagged"><td class="mono">99285</td><td data-i18n="bill_row2">ER visit, level 5</td><td class="amt">$2,450.00</td></tr>
+            <tr><td class="mono">85025</td><td data-i18n="bill_row3">Complete blood count</td><td class="amt">$95.00</td></tr>
           </tbody>
         </table>
-        <span class="medicare-tag">Medicare rate for 99285: $171.00</span>
+        <span class="medicare-tag" data-i18n="bill_tag">Medicare rate for 99285: $171.00</span>
         <svg class="circle-svg" viewBox="0 0 340 70"><path d="M12 35 C 40 8, 300 8, 328 32 C 302 58, 42 60, 12 35 Z"/></svg>
-        <div class="annotation"><div class="card"><strong>+1,332%</strong>over the Medicare rate — worth asking why.</div></div>
+        <div class="annotation"><div class="card"><strong data-i18n="bill_pct">+1,332%</strong><span data-i18n="bill_pct_note">over the Medicare rate — worth asking why.</span></div></div>
       </div>
     </div>
   </div>
@@ -235,114 +243,118 @@
 
 <section class="section" id="how">
   <div class="wrap">
-    <div class="section-head"><h2>Three steps, no billing expertise required</h2><p>You don't need to know what a CPT code is. We look it up for you.</p></div>
+    <div class="section-head">
+      <h2 data-i18n="how_title">Three steps, no billing expertise required</h2>
+      <p data-i18n="how_subtitle">You don't need to know what a CPT code is. We look it up for you.</p>
+    </div>
     <div class="steps">
-      <div class="step"><span class="num">01</span><h3>Upload your bill</h3><p>A PDF or a photo works. From any US hospital, ER, or urgent care.</p></div>
-      <div class="step"><span class="num">02</span><h3>We check every line</h3><p>Each charge is compared to Medicare's published national rate — a public number, not our opinion.</p></div>
-      <div class="step"><span class="num">03</span><h3>You get a letter</h3><p>Addressed, dated, and citing the exact codes — ready to print and mail.</p></div>
+      <div class="step"><span class="num">01</span><h3 data-i18n="step1_title">Upload your bill</h3><p data-i18n="step1_desc">A PDF or a photo works. From any US hospital, ER, or urgent care.</p></div>
+      <div class="step"><span class="num">02</span><h3 data-i18n="step2_title">We check every line</h3><p data-i18n="step2_desc">Each charge is compared to Medicare's published national rate — a public number, not our opinion.</p></div>
+      <div class="step"><span class="num">03</span><h3 data-i18n="step3_title">You get a letter</h3><p data-i18n="step3_desc">Addressed, dated, and citing the exact codes — ready to print and mail.</p></div>
     </div>
   </div>
 </section>
 
 <section class="section citation-section" id="medicare">
   <div class="wrap citation">
-    <h2>Why Medicare's rate?</h2>
-    <blockquote>"You billed $2,450 for a service Medicare reimburses at $171. Please provide an itemized explanation of this charge."</blockquote>
-    <p class="note">Medicare publishes exactly what it pays for every procedure in the country. It's not a "fair price" — it's a documented, government benchmark nobody can dispute the source of.</p>
+    <h2 data-i18n="medicare_title">Why Medicare's rate?</h2>
+    <blockquote data-i18n="medicare_quote">"You billed $2,450 for a service Medicare reimburses at $171. Please provide an itemized explanation of this charge."</blockquote>
+    <p class="note" data-i18n="medicare_note">Medicare publishes exactly what it pays for every procedure in the country. It's not a "fair price" — it's a documented, government benchmark nobody can dispute the source of.</p>
   </div>
 </section>
 
 <section class="section" id="app-section">
   <div class="wrap">
-    <div class="section-head center"><h2>Check your bill</h2><p>Free to see what we find. Pay only if you want the letter.</p></div>
+    <div class="section-head center"><h2 data-i18n="app_title">Check your bill</h2><p data-i18n="app_subtitle">Free to see what we find. Pay only if you want the letter.</p></div>
 
     <div class="app-card">
       <div class="steps-bar">
-        <div class="s" data-step="1">1. Upload</div>
-        <div class="s" data-step="2">2. Analysis</div>
-        <div class="s" data-step="3">3. Comparison</div>
-        <div class="s" data-step="4">4. Letter</div>
+        <div class="s" data-step="1" data-i18n="sb_1">1. Upload</div>
+        <div class="s" data-step="2" data-i18n="sb_2">2. Analysis</div>
+        <div class="s" data-step="3" data-i18n="sb_3">3. Comparison</div>
+        <div class="s" data-step="4" data-i18n="sb_4">4. Letter</div>
       </div>
 
       <div id="panel-upload">
         <div class="dropzone" id="dropzone">
-          <label for="file-input">Click to choose a file <span style="color:var(--ink-soft); font-weight:400;">or drag it here</span></label>
+          <label for="file-input"><span data-i18n="upload_label">Click to choose a file</span> <span style="color:var(--ink-soft); font-weight:400;" data-i18n="upload_or_drag">or drag it here</span></label>
           <input type="file" id="file-input" accept=".pdf,.png,.jpg,.jpeg">
           <div id="file-chip-wrap"></div>
         </div>
         <div class="action-row">
-          <button class="btn btn-primary" id="analyze-btn" disabled>Analyze the bill</button>
-          <button class="btn btn-ghost" id="demo-btn">▶ Try with a sample bill</button>
+          <button class="btn btn-primary" id="analyze-btn" disabled data-i18n="analyze_btn">Analyze the bill</button>
+          <button class="btn btn-ghost" id="demo-btn" data-i18n="demo_btn">▶ Try with a sample bill</button>
         </div>
         <div class="badges-row">
-          <span>🗑️ Your file isn't stored after your session</span>
-          <span>🔒 Encrypted connection (HTTPS)</span>
-          <span>💳 No credit card for the free scan</span>
+          <span data-i18n="badge_storage">🗑️ Your file isn't stored after your session</span>
+          <span data-i18n="badge_https">🔒 Encrypted connection (HTTPS)</span>
+          <span data-i18n="badge_free">💳 No credit card for the free scan</span>
         </div>
       </div>
 
       <div id="panel-results" class="hidden">
-        <h3 style="margin-bottom:14px;">Bill information</h3>
+        <h3 style="margin-bottom:14px;" data-i18n="bill_info_title">Bill information</h3>
         <div class="form-grid">
-          <div><label>Patient name</label><input id="f-patient" /></div>
-          <div><label>Hospital / provider</label><input id="f-provider" /></div>
-          <div><label>Hospital address</label><input id="f-provider-addr" /></div>
-          <div><label>Account / claim number</label><input id="f-account" /></div>
-          <div><label>Bill date</label><input id="f-billdate" /></div>
-          <div><label>Letter date</label><input id="f-letterdate" /></div>
+          <div><label data-i18n="f_patient">Patient name</label><input id="f-patient" /></div>
+          <div><label data-i18n="f_provider">Hospital / provider</label><input id="f-provider" /></div>
+          <div><label data-i18n="f_provider_addr">Hospital address</label><input id="f-provider-addr" /></div>
+          <div><label data-i18n="f_account">Account / claim number</label><input id="f-account" /></div>
+          <div><label data-i18n="f_billdate">Bill date</label><input id="f-billdate" /></div>
+          <div><label data-i18n="f_letterdate">Letter date</label><input id="f-letterdate" /></div>
         </div>
-        <h3 style="margin:18px 0 10px;">Your contact info (letter sender)</h3>
+        <h3 style="margin:18px 0 10px;" data-i18n="sender_title">Your contact info (letter sender)</h3>
         <div class="form-grid">
-          <div><label>Your full name</label><input id="f-sender-name" /></div>
-          <div><label>Your address</label><input id="f-sender-addr" /></div>
-          <div><label>City, State, ZIP</label><input id="f-sender-citystate" /></div>
+          <div><label data-i18n="f_sender_name">Your full name</label><input id="f-sender-name" /></div>
+          <div><label data-i18n="f_sender_addr">Your address</label><input id="f-sender-addr" /></div>
+          <div><label data-i18n="f_sender_citystate">City, State, ZIP</label><input id="f-sender-citystate" /></div>
         </div>
 
-        <h3 style="margin:22px 0 12px;">Comparison to the Medicare rate</h3>
+        <h3 style="margin:22px 0 12px;" data-i18n="comparison_title">Comparison to the Medicare rate</h3>
         <div class="stat-grid">
-          <div class="stat-box"><div class="n" id="stat-total">$0</div><div class="l">Total billed</div></div>
-          <div class="stat-box"><div class="n" id="stat-gap">$0</div><div class="l">Gap on suspicious lines</div></div>
-          <div class="stat-box"><div class="n" id="stat-count">0</div><div class="l">Lines far above the norm</div></div>
+          <div class="stat-box"><div class="n" id="stat-total">$0</div><div class="l" data-i18n="stat_total">Total billed</div></div>
+          <div class="stat-box"><div class="n" id="stat-gap">$0</div><div class="l" data-i18n="stat_gap">Gap on suspicious lines</div></div>
+          <div class="stat-box"><div class="n" id="stat-count">0</div><div class="l" data-i18n="stat_count">Lines far above the norm</div></div>
         </div>
-        <div class="locked-badge">🔒 Itemized audit locked — unlock below to see exact codes &amp; amounts</div>
+        <div class="locked-badge" data-i18n="table_locked">🔒 Itemized audit locked — unlock below to see exact codes &amp; amounts</div>
         <div id="results-table-wrap" class="blurred">
           <table class="results" id="results-table">
-            <thead><tr><th>CPT</th><th>Description</th><th>Billed</th><th>Medicare</th><th>Diff %</th><th>Status</th></tr></thead>
+            <thead><tr><th data-i18n="th_cpt">CPT</th><th data-i18n="th_desc">Description</th><th data-i18n="th_billed">Billed</th><th data-i18n="th_medicare">Medicare</th><th data-i18n="th_diff">Diff %</th><th data-i18n="th_status">Status</th></tr></thead>
             <tbody id="results-tbody"></tbody>
           </table>
         </div>
 
         <div class="action-row">
-          <button class="btn btn-pink" id="generate-letter-btn">✍ Generate the letter</button>
+          <button class="btn btn-pink" id="generate-letter-btn" data-i18n="generate_letter_btn">✍ Generate the letter</button>
         </div>
       </div>
 
       <div id="panel-letter" class="hidden">
-        <h3 style="margin-bottom:12px;">Dispute letter</h3>
+        <h3 style="margin-bottom:6px;" data-i18n="letter_title">Dispute letter</h3>
+        <p class="letter-lang-note" data-i18n="letter_lang_note">The letter itself is always written in English, since it's addressed to a US hospital — regardless of the site language.</p>
         <div id="letter-locked-wrap">
           <div class="letter-box blurred" id="letter-preview"></div>
-          <p style="margin:14px 0 8px; font-weight:700;">Unlock your letter to download the PDF:</p>
+          <p style="margin:14px 0 8px; font-weight:700;" data-i18n="unlock_cta">Unlock your letter to download the PDF:</p>
           <div class="pricing-grid">
             <div class="price-card">
-              <div class="plan-name">Standard</div>
+              <div class="plan-name" data-i18n="plan_standard">Standard</div>
               <div class="price">$19</div>
-              <ul><li>Complete dispute letter in PDF</li><li>Ready to print and send</li></ul>
-              <button class="btn btn-ghost" style="width:100%; justify-content:center;" onclick="startCheckout('standard')">Unlock — $19</button>
+              <ul><li data-i18n="plan_std_li1">Complete dispute letter in PDF</li><li data-i18n="plan_std_li2">Ready to print and send</li></ul>
+              <button class="btn btn-ghost" style="width:100%; justify-content:center;" onclick="startCheckout('standard')" data-i18n="plan_std_btn">Unlock — $19</button>
             </div>
             <div class="price-card pro">
-              <div class="plan-name" style="color:var(--stamp);">Pro</div>
+              <div class="plan-name" style="color:var(--stamp);" data-i18n="plan_pro">Pro</div>
               <div class="price">$34</div>
-              <ul><li>Everything in Standard</li><li>Follow-up letter if no reply in 30 days</li></ul>
-              <button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="startCheckout('pro')">Unlock — $34</button>
+              <ul><li data-i18n="plan_pro_li1">Everything in Standard</li><li data-i18n="plan_pro_li2">Follow-up letter if no reply in 30 days</li></ul>
+              <button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="startCheckout('pro')" data-i18n="plan_pro_btn">Unlock — $34</button>
             </div>
           </div>
-          <div class="addon-check"><label><input type="checkbox" id="addon-insurance"> Insurance Appeal Letter (+$14) — for a denied or underpaid claim</label></div>
-          <div class="addon-check"><label><input type="checkbox" id="addon-phone"> Phone Negotiation Script (+$9) — what to say when you call billing</label></div>
+          <div class="addon-check"><label><input type="checkbox" id="addon-insurance"> <span data-i18n="addon_insurance">Insurance Appeal Letter (+$14) — for a denied or underpaid claim</span></label></div>
+          <div class="addon-check"><label><input type="checkbox" id="addon-phone"> <span data-i18n="addon_phone">Phone Negotiation Script (+$9) — what to say when you call billing</span></label></div>
         </div>
         <div id="letter-unlocked-wrap" class="hidden">
           <div class="letter-box" id="letter-full"></div>
           <div class="action-row">
-            <button class="btn btn-primary" id="download-pdf-btn">⬇ Download the letter as PDF</button>
+            <button class="btn btn-primary" id="download-pdf-btn" data-i18n="download_pdf_btn">⬇ Download the letter as PDF</button>
           </div>
         </div>
       </div>
@@ -354,13 +366,13 @@
 
 <section class="section" id="faq">
   <div class="wrap">
-    <div class="section-head center"><h2>Questions people ask before uploading</h2></div>
+    <div class="section-head center"><h2 data-i18n="faq_title">Questions people ask before uploading</h2></div>
     <div class="faq-list">
-      <details open><summary>Is it legal to dispute my bill using Medicare rates?</summary><p>Yes. Medicare rates are a public, government-published benchmark. Citing them to request an itemized review is a normal, lawful practice.</p></details>
-      <details><summary>Will this affect my credit score?</summary><p>Disputing a bill directly with a hospital's billing department typically pauses collections while the review is pending. Confirm directly with your hospital's billing office.</p></details>
-      <details><summary>How long do hospitals usually take to respond?</summary><p>The letter requests a written response within 30 days. The Pro plan includes a follow-up letter template if you don't hear back.</p></details>
-      <details><summary>Is my personal and medical information kept private?</summary><p>Your bill is processed to extract the data needed for your letter and isn't stored after your session ends.</p></details>
-      <details><summary>Do I need a lawyer to use this?</summary><p>No. CureMyBill generates a request for itemized review that you send yourself. It isn't legal advice.</p></details>
+      <details open><summary data-i18n="faq_q1">Is it legal to dispute my bill using Medicare rates?</summary><p data-i18n="faq_a1">Yes. Medicare rates are a public, government-published benchmark. Citing them to request an itemized review is a normal, lawful practice.</p></details>
+      <details><summary data-i18n="faq_q2">Will this affect my credit score?</summary><p data-i18n="faq_a2">Disputing a bill directly with a hospital's billing department typically pauses collections while the review is pending. Confirm directly with your hospital's billing office.</p></details>
+      <details><summary data-i18n="faq_q3">How long do hospitals usually take to respond?</summary><p data-i18n="faq_a3">The letter requests a written response within 30 days. The Pro plan includes a follow-up letter template if you don't hear back.</p></details>
+      <details><summary data-i18n="faq_q4">Is my personal and medical information kept private?</summary><p data-i18n="faq_a4">Your bill is processed to extract the data needed for your letter and isn't stored after your session ends.</p></details>
+      <details><summary data-i18n="faq_q5">Do I need a lawyer to use this?</summary><p data-i18n="faq_a5">No. CureMyBill generates a request for itemized review that you send yourself. It isn't legal advice.</p></details>
     </div>
   </div>
 </section>
@@ -369,13 +381,170 @@
   <div class="wrap">
     <div class="footer-grid">
       <div class="footer-brand">CureMyBill</div>
-      <p class="disclaimer">CureMyBill is an automated document-assistance tool. It does not provide medical or legal advice and is not a substitute for an attorney, a licensed medical billing advocate, or your insurance carrier.</p>
+      <p class="disclaimer" data-i18n="footer_disclaimer">CureMyBill is an automated document-assistance tool. It does not provide medical or legal advice and is not a substitute for an attorney, a licensed medical billing advocate, or your insurance carrier.</p>
     </div>
     <p class="copyright">© 2026 CureMyBill.</p>
   </div>
 </footer>
 
 <script>
+  // ================== i18n ==================
+  const TRANSLATIONS = {
+    en: {
+      nav_how: "How it works", nav_medicare: "Why Medicare's rate", nav_pricing: "Pricing", nav_faq: "FAQ", nav_cta: "Check your bill",
+      hero_h1: 'The ER charged <span class="figure-num">$2,450</span>.<br>Medicare pays <span class="figure-num">$171</span> for the same visit.',
+      hero_lede: "Upload your bill. We check every line against Medicare's published national rate and draft a letter asking your hospital to explain the difference.",
+      hero_cta: "Check your bill free",
+      hero_trust: "No card needed for the audit. <strong>Takes about a minute.</strong>",
+      bill_cpt: "CPT", bill_desc: "Description", bill_billed: "Billed",
+      bill_row1: "Office visit, level 3", bill_row2: "ER visit, level 5", bill_row3: "Complete blood count",
+      bill_tag: "Medicare rate for 99285: $171.00",
+      bill_pct: "+1,332%", bill_pct_note: "over the Medicare rate — worth asking why.",
+      how_title: "Three steps, no billing expertise required",
+      how_subtitle: "You don't need to know what a CPT code is. We look it up for you.",
+      step1_title: "Upload your bill", step1_desc: "A PDF or a photo works. From any US hospital, ER, or urgent care.",
+      step2_title: "We check every line", step2_desc: "Each charge is compared to Medicare's published national rate — a public number, not our opinion.",
+      step3_title: "You get a letter", step3_desc: "Addressed, dated, and citing the exact codes — ready to print and mail.",
+      medicare_title: "Why Medicare's rate?",
+      medicare_quote: '"You billed $2,450 for a service Medicare reimburses at $171. Please provide an itemized explanation of this charge."',
+      medicare_note: 'Medicare publishes exactly what it pays for every procedure in the country. It\'s not a "fair price" — it\'s a documented, government benchmark nobody can dispute the source of.',
+      app_title: "Check your bill", app_subtitle: "Free to see what we find. Pay only if you want the letter.",
+      sb_1: "1. Upload", sb_2: "2. Analysis", sb_3: "3. Comparison", sb_4: "4. Letter",
+      upload_label: "Click to choose a file", upload_or_drag: "or drag it here",
+      analyze_btn: "Analyze the bill", demo_btn: "▶ Try with a sample bill",
+      badge_storage: "🗑️ Your file isn't stored after your session",
+      badge_https: "🔒 Encrypted connection (HTTPS)",
+      badge_free: "💳 No credit card for the free scan",
+      bill_info_title: "Bill information",
+      f_patient: "Patient name", f_provider: "Hospital / provider", f_provider_addr: "Hospital address",
+      f_account: "Account / claim number", f_billdate: "Bill date", f_letterdate: "Letter date",
+      sender_title: "Your contact info (letter sender)",
+      f_sender_name: "Your full name", f_sender_addr: "Your address", f_sender_citystate: "City, State, ZIP",
+      comparison_title: "Comparison to the Medicare rate",
+      stat_total: "Total billed", stat_gap: "Gap on suspicious lines", stat_count: "Lines far above the norm",
+      table_locked: "🔒 Itemized audit locked — unlock below to see exact codes &amp; amounts",
+      th_cpt: "CPT", th_desc: "Description", th_billed: "Billed", th_medicare: "Medicare", th_diff: "Diff %", th_status: "Status",
+      generate_letter_btn: "✍ Generate the letter",
+      letter_title: "Dispute letter",
+      letter_lang_note: "The letter itself is always written in English, since it's addressed to a US hospital — regardless of the site language.",
+      unlock_cta: "Unlock your letter to download the PDF:",
+      plan_standard: "Standard", plan_std_li1: "Complete dispute letter in PDF", plan_std_li2: "Ready to print and send", plan_std_btn: "Unlock — $19",
+      plan_pro: "Pro", plan_pro_li1: "Everything in Standard", plan_pro_li2: "Follow-up letter if no reply in 30 days", plan_pro_btn: "Unlock — $34",
+      addon_insurance: "Insurance Appeal Letter (+$14) — for a denied or underpaid claim",
+      addon_phone: "Phone Negotiation Script (+$9) — what to say when you call billing",
+      download_pdf_btn: "⬇ Download the letter as PDF",
+      faq_title: "Questions people ask before uploading",
+      faq_q1: "Is it legal to dispute my bill using Medicare rates?",
+      faq_a1: "Yes. Medicare rates are a public, government-published benchmark. Citing them to request an itemized review is a normal, lawful practice.",
+      faq_q2: "Will this affect my credit score?",
+      faq_a2: "Disputing a bill directly with a hospital's billing department typically pauses collections while the review is pending. Confirm directly with your hospital's billing office.",
+      faq_q3: "How long do hospitals usually take to respond?",
+      faq_a3: "The letter requests a written response within 30 days. The Pro plan includes a follow-up letter template if you don't hear back.",
+      faq_q4: "Is my personal and medical information kept private?",
+      faq_a4: "Your bill is processed to extract the data needed for your letter and isn't stored after your session ends.",
+      faq_q5: "Do I need a lawyer to use this?",
+      faq_a5: "No. CureMyBill generates a request for itemized review that you send yourself. It isn't legal advice.",
+      footer_disclaimer: "CureMyBill is an automated document-assistance tool. It does not provide medical or legal advice and is not a substitute for an attorney, a licensed medical billing advocate, or your insurance carrier.",
+      err_analyze: "Couldn't analyze this bill: ", err_demo: "Couldn't load the sample bill: ",
+      err_letter: "Couldn't generate the letter: ", err_pdf: "Couldn't generate the PDF: ",
+      toast_found: "Found {n} line(s) well above the Medicare rate.",
+      toast_demo: "Loaded a sample bill — no upload needed.",
+      toast_paid: "Payment confirmed — your letter is unlocked.",
+      analyzing: "Analyzing...", writing: "Writing...",
+      status_dispute: "Well above typical — worth disputing",
+      status_above: "Above typical markup",
+      status_typical: "Typical range",
+      status_none: "No reference",
+    },
+    es: {
+      nav_how: "Cómo funciona", nav_medicare: "Por qué la tarifa de Medicare", nav_pricing: "Precios", nav_faq: "Preguntas frecuentes", nav_cta: "Revise su factura",
+      hero_h1: 'La sala de emergencias cobró <span class="figure-num">$2,450</span>.<br>Medicare paga <span class="figure-num">$171</span> por la misma visita.',
+      hero_lede: "Suba su factura. Revisamos cada línea comparándola con la tarifa nacional publicada por Medicare y redactamos una carta pidiéndole al hospital que explique la diferencia.",
+      hero_cta: "Revise su factura gratis",
+      hero_trust: "No necesita tarjeta para la auditoría. <strong>Toma un minuto.</strong>",
+      bill_cpt: "CPT", bill_desc: "Descripción", bill_billed: "Facturado",
+      bill_row1: "Consulta médica, nivel 3", bill_row2: "Visita de emergencia, nivel 5", bill_row3: "Conteo sanguíneo completo",
+      bill_tag: "Tarifa de Medicare para 99285: $171.00",
+      bill_pct: "+1,332%", bill_pct_note: "por encima de la tarifa de Medicare — vale la pena preguntar por qué.",
+      how_title: "Tres pasos, sin necesidad de saber de facturación",
+      how_subtitle: "No necesita saber qué es un código CPT. Nosotros lo buscamos por usted.",
+      step1_title: "Suba su factura", step1_desc: "Un PDF o una foto sirven. De cualquier hospital, sala de emergencias o clínica de urgencias en EE. UU.",
+      step2_title: "Revisamos cada línea", step2_desc: "Cada cargo se compara con la tarifa nacional publicada por Medicare — un número público, no nuestra opinión.",
+      step3_title: "Reciba una carta", step3_desc: "Dirigida, fechada, y citando los códigos exactos — lista para imprimir y enviar por correo.",
+      medicare_title: "¿Por qué la tarifa de Medicare?",
+      medicare_quote: '"Usted facturó $2,450 por un servicio que Medicare reembolsa a $171. Por favor proporcione una explicación detallada de este cargo."',
+      medicare_note: 'Medicare publica exactamente lo que paga por cada procedimiento en el país. No es un "precio justo" — es una referencia gubernamental documentada cuya fuente nadie puede cuestionar.',
+      app_title: "Revise su factura", app_subtitle: "Gratis para ver lo que encontramos. Pague solo si quiere la carta.",
+      sb_1: "1. Subir", sb_2: "2. Análisis", sb_3: "3. Comparación", sb_4: "4. Carta",
+      upload_label: "Haga clic para elegir un archivo", upload_or_drag: "o arrástrelo aquí",
+      analyze_btn: "Analizar la factura", demo_btn: "▶ Probar con una factura de ejemplo",
+      badge_storage: "🗑️ Su archivo no se guarda después de su sesión",
+      badge_https: "🔒 Conexión cifrada (HTTPS)",
+      badge_free: "💳 No se requiere tarjeta para el escaneo gratuito",
+      bill_info_title: "Información de la factura",
+      f_patient: "Nombre del paciente", f_provider: "Hospital / proveedor", f_provider_addr: "Dirección del hospital",
+      f_account: "Número de cuenta / reclamo", f_billdate: "Fecha de la factura", f_letterdate: "Fecha de la carta",
+      sender_title: "Su información de contacto (remitente de la carta)",
+      f_sender_name: "Su nombre completo", f_sender_addr: "Su dirección", f_sender_citystate: "Ciudad, Estado, Código Postal",
+      comparison_title: "Comparación con la tarifa de Medicare",
+      stat_total: "Total facturado", stat_gap: "Diferencia en líneas sospechosas", stat_count: "Líneas muy por encima de lo normal",
+      table_locked: "🔒 Auditoría detallada bloqueada — desbloquee abajo para ver códigos y montos exactos",
+      th_cpt: "CPT", th_desc: "Descripción", th_billed: "Facturado", th_medicare: "Medicare", th_diff: "Dif. %", th_status: "Estado",
+      generate_letter_btn: "✍ Generar la carta",
+      letter_title: "Carta de disputa",
+      letter_lang_note: "La carta siempre se redacta en inglés, ya que está dirigida a un hospital de EE. UU. — sin importar el idioma del sitio.",
+      unlock_cta: "Desbloquee su carta para descargarla en PDF:",
+      plan_standard: "Standard", plan_std_li1: "Carta de disputa completa en PDF", plan_std_li2: "Lista para imprimir y enviar", plan_std_btn: "Desbloquear — $19",
+      plan_pro: "Pro", plan_pro_li1: "Todo lo incluido en Standard", plan_pro_li2: "Carta de seguimiento si no hay respuesta en 30 días", plan_pro_btn: "Desbloquear — $34",
+      addon_insurance: "Carta de Apelación al Seguro (+$14) — para un reclamo denegado o pagado de menos",
+      addon_phone: "Guion de Negociación Telefónica (+$9) — qué decir al llamar a facturación",
+      download_pdf_btn: "⬇ Descargar la carta en PDF",
+      faq_title: "Preguntas frecuentes antes de subir su factura",
+      faq_q1: "¿Es legal disputar mi factura usando las tarifas de Medicare?",
+      faq_a1: "Sí. Las tarifas de Medicare son una referencia pública publicada por el gobierno. Citarlas para solicitar una revisión detallada es una práctica normal y legal.",
+      faq_q2: "¿Afectará esto mi puntaje de crédito?",
+      faq_a2: "Disputar una factura directamente con el departamento de facturación del hospital normalmente pausa el proceso de cobranza mientras se revisa. Confirme directamente con el hospital.",
+      faq_q3: "¿Cuánto tiempo tardan los hospitales en responder normalmente?",
+      faq_a3: "La carta solicita una respuesta por escrito dentro de 30 días. El plan Pro incluye una plantilla de carta de seguimiento si no recibe respuesta.",
+      faq_q4: "¿Se mantiene privada mi información personal y médica?",
+      faq_a4: "Su factura se procesa para extraer los datos necesarios para su carta y no se guarda después de que termine su sesión.",
+      faq_q5: "¿Necesito un abogado para usar esto?",
+      faq_a5: "No. CureMyBill genera una solicitud de revisión detallada que usted mismo puede enviar. Esto no es asesoramiento legal.",
+      footer_disclaimer: "CureMyBill es una herramienta automatizada de asistencia documental. No brinda asesoría médica ni legal y no sustituye a un abogado, un defensor de facturación médica con licencia, ni a su compañía de seguros.",
+      err_analyze: "No se pudo analizar esta factura: ", err_demo: "No se pudo cargar la factura de ejemplo: ",
+      err_letter: "No se pudo generar la carta: ", err_pdf: "No se pudo generar el PDF: ",
+      toast_found: "Se encontraron {n} línea(s) muy por encima de la tarifa de Medicare.",
+      toast_demo: "Factura de ejemplo cargada — no se necesita subir nada.",
+      toast_paid: "Pago confirmado — su carta está desbloqueada.",
+      analyzing: "Analizando...", writing: "Redactando...",
+      status_dispute: "Muy por encima de lo normal — vale la pena disputar",
+      status_above: "Por encima del margen habitual",
+      status_typical: "Rango típico",
+      status_none: "Sin referencia",
+    }
+  };
+
+  let currentLang = "en";
+
+  function T(key){ return (TRANSLATIONS[currentLang] && TRANSLATIONS[currentLang][key]) || TRANSLATIONS.en[key] || key; }
+
+  function applyLanguage(lang){
+    currentLang = lang;
+    document.documentElement.lang = lang;
+    document.querySelectorAll("[data-i18n]").forEach(el => {
+      const key = el.getAttribute("data-i18n");
+      el.innerHTML = T(key);
+    });
+    document.getElementById("lang-en").classList.toggle("active", lang === "en");
+    document.getElementById("lang-es").classList.toggle("active", lang === "es");
+    // Re-render any already-visible dynamic content in the new language
+    if (state.comparison && state.comparison.length) renderResultsTable(state.comparison);
+    try { localStorage.setItem("curemybill_lang", lang); } catch(e){}
+  }
+
+  window.setLang = function(lang){ applyLanguage(lang); };
+
+  // ================== app state & logic ==================
   const API_BASE = "";
   const PADDLE_ENVIRONMENT = "sandbox";
   const PADDLE_CLIENT_TOKEN = "test_4a84f6454a686c1c88f85474e51";
@@ -408,6 +577,16 @@
 
   function fmtMoney(v){
     return "$" + Number(v || 0).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+
+  function statusLabel(status){
+    const map = {
+      "Well above typical — worth disputing": T("status_dispute"),
+      "Above typical markup": T("status_above"),
+      "Typical range": T("status_typical"),
+      "No reference": T("status_none"),
+    };
+    return map[status] || status;
   }
 
   async function apiPost(path, body, isFormData){
@@ -448,7 +627,7 @@
     const btn = $("analyze-btn");
     const originalText = btn.textContent;
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Analyzing...';
+    btn.innerHTML = '<span class="spinner"></span> ' + T("analyzing");
     setStep(2);
     try {
       const formData = new FormData();
@@ -456,7 +635,7 @@
       const data = await apiPost("/api/analyze", formData, true);
       applyAnalysisResult(data);
     } catch (err){
-      showError("Couldn't analyze this bill: " + err.message);
+      showError(T("err_analyze") + err.message);
       setStep(1);
     } finally {
       btn.disabled = false;
@@ -470,11 +649,28 @@
     try {
       const data = await apiPost("/api/demo", {});
       applyAnalysisResult(data);
-      showToast("Loaded a sample bill — no upload needed.", "success");
+      showToast(T("toast_demo"), "success");
     } catch (err){
-      showError("Couldn't load the sample bill: " + err.message);
+      showError(T("err_demo") + err.message);
     }
   });
+
+  function renderResultsTable(comparison){
+    $("results-tbody").innerHTML = comparison.map(r => {
+      const cls = r.status === "Well above typical — worth disputing" ? "status-dispute"
+                : r.status === "Above typical markup" ? "status-above"
+                : r.status === "Typical range" ? "status-typical" : "";
+      return `
+      <tr class="${cls}">
+        <td class="mono">${r.cpt_code}</td>
+        <td>${r.description}</td>
+        <td class="amt">${fmtMoney(r.billed)}</td>
+        <td class="amt">${r.medicare_rate != null ? fmtMoney(r.medicare_rate) : "—"}</td>
+        <td class="amt">${r.difference_pct != null ? (r.difference_pct > 0 ? "+" : "") + r.difference_pct + "%" : "—"}</td>
+        <td>${statusLabel(r.status)}</td>
+      </tr>`;
+    }).join("");
+  }
 
   function applyAnalysisResult(data){
     state.auditId = data.audit_id;
@@ -498,30 +694,14 @@
     $("stat-gap").textContent = fmtMoney(gap);
     $("stat-count").textContent = outliers.length;
 
-    const statusClass = (s) => {
-      if (s === "Well above typical — worth disputing") return "status-dispute";
-      if (s === "Above typical markup") return "status-above";
-      if (s === "Typical range") return "status-typical";
-      return "";
-    };
-
-    $("results-tbody").innerHTML = data.comparison.map(r => `
-      <tr class="${statusClass(r.status)}">
-        <td class="mono">${r.cpt_code}</td>
-        <td>${r.description}</td>
-        <td class="amt">${fmtMoney(r.billed)}</td>
-        <td class="amt">${r.medicare_rate != null ? fmtMoney(r.medicare_rate) : "—"}</td>
-        <td class="amt">${r.difference_pct != null ? (r.difference_pct > 0 ? "+" : "") + r.difference_pct + "%" : "—"}</td>
-        <td>${r.status}</td>
-      </tr>
-    `).join("");
+    renderResultsTable(data.comparison);
 
     $("panel-upload").classList.add("hidden");
     $("panel-results").classList.remove("hidden");
     setStep(3);
 
     if (outliers.length > 0){
-      showToast(`Found ${outliers.length} line(s) well above the Medicare rate.`, "success");
+      showToast(T("toast_found").replace("{n}", outliers.length), "success");
     }
   }
 
@@ -530,7 +710,7 @@
     const btn = $("generate-letter-btn");
     btn.disabled = true;
     const original = btn.textContent;
-    btn.innerHTML = '<span class="spinner"></span> Writing...';
+    btn.innerHTML = '<span class="spinner"></span> ' + T("writing");
     try {
       const disputed = state.comparison.filter(r => r.status === "Well above typical — worth disputing");
       const payload = {
@@ -553,7 +733,7 @@
       setStep(4);
       $("panel-letter").scrollIntoView({behavior:"smooth", block:"start"});
     } catch (err){
-      showError("Couldn't generate the letter: " + err.message);
+      showError(T("err_letter") + err.message);
     } finally {
       btn.disabled = false;
       btn.textContent = original;
@@ -580,7 +760,7 @@
     $("letter-locked-wrap").classList.add("hidden");
     $("letter-unlocked-wrap").classList.remove("hidden");
     $("letter-full").textContent = state.letterText;
-    showToast("Payment confirmed — your letter is unlocked.", "success");
+    showToast(T("toast_paid"), "success");
   }
 
   $("download-pdf-btn").addEventListener("click", async () => {
@@ -596,9 +776,18 @@
       a.href = url; a.download = "dispute_letter.pdf";
       document.body.appendChild(a); a.click(); a.remove();
     } catch (err){
-      showError("Couldn't generate the PDF: " + err.message);
+      showError(T("err_pdf") + err.message);
     }
   });
+
+  // Initialize language: saved preference, else browser language, else English
+  (function initLang(){
+    let saved = null;
+    try { saved = localStorage.getItem("curemybill_lang"); } catch(e){}
+    const browserLang = (navigator.language || "en").slice(0,2);
+    const initial = saved || (browserLang === "es" ? "es" : "en");
+    applyLanguage(initial);
+  })();
 </script>
 
 </body>
