@@ -1,0 +1,153 @@
+cpt_code,description,standard_price
+99201,Office visit new patient (level 1),45
+99202,Office visit new patient (level 2),75
+99203,Office visit new patient (level 3),110
+99204,Office visit new patient (level 4),165
+99205,Office visit new patient (level 5),210
+99211,Office visit established patient (level 1),24
+99212,Office visit established patient (level 2),56
+99213,Office visit established patient (level 3),92
+99214,Office visit established patient (level 4),131
+99215,Office visit established patient (level 5),183
+99281,Emergency dept visit (level 1) - straightforward,23
+99282,Emergency dept visit (level 2) - low to moderate,44
+99283,Emergency dept visit (level 3) - low complexity,69
+99284,Emergency dept visit (level 4) - moderate complexity,118
+99285,Emergency dept visit (level 5) - high complexity,171
+99291,Critical care first 30-74 minutes,265
+99292,Critical care each additional 30 minutes,132
+71045,Chest X-ray 1 view,28
+71046,Chest X-ray 2 views,38
+71047,Chest X-ray 3 views,48
+71048,Chest X-ray 4+ views,55
+73030,Shoulder X-ray complete,32
+73060,Humerus X-ray,29
+73070,Elbow X-ray,29
+73090,Forearm X-ray,28
+73100,Wrist X-ray,28
+73120,Hand X-ray,28
+73130,Hand X-ray 3+ views,32
+73510,Hip X-ray complete,32
+73560,Knee X-ray 1-2 views,28
+73562,Knee X-ray 3 views,32
+73590,Tibia/fibula X-ray,28
+73600,Ankle X-ray,28
+73610,Ankle X-ray complete,30
+73630,Foot X-ray complete,29
+72040,Cervical spine X-ray,35
+72070,Thoracic spine X-ray,33
+72100,Lumbar spine X-ray,38
+70450,CT head/brain without contrast,260
+70460,CT head/brain with contrast,310
+70470,CT head/brain without and with contrast,380
+71250,CT chest without contrast,280
+71260,CT chest with contrast,330
+74150,CT abdomen without contrast,290
+74160,CT abdomen with contrast,340
+74176,CT abdomen and pelvis without contrast,320
+74177,CT abdomen and pelvis with contrast,390
+74178,CT abdomen and pelvis without and with contrast,460
+72125,CT cervical spine without contrast,300
+72131,CT lumbar spine without contrast,300
+72192,CT pelvis without contrast,280
+72141,MRI cervical spine without contrast,400
+72148,MRI lumbar spine without contrast,450
+72156,MRI spine without and with contrast,620
+73721,MRI knee without contrast,420
+73221,MRI upper extremity joint without contrast,410
+70551,MRI brain without contrast,470
+70553,MRI brain without and with contrast,650
+76700,Abdominal ultrasound complete,140
+76705,Abdominal ultrasound limited,95
+76856,Pelvic ultrasound complete,145
+76870,Scrotal ultrasound,110
+93306,Echocardiogram complete with Doppler,225
+93000,Electrocardiogram (ECG) with interpretation,17
+93005,Electrocardiogram (ECG) tracing only,11
+93010,Electrocardiogram (ECG) interpretation only,7
+93040,Rhythm ECG 1-3 leads with interpretation,10
+80048,Basic metabolic panel,8
+80053,Comprehensive metabolic panel,10
+80061,Lipid panel,14
+80076,Hepatic function panel,11
+84443,Thyroid stimulating hormone (TSH),22
+82947,Glucose blood test,5
+82962,Glucose fingerstick test,4
+85025,Complete blood count (CBC) with differential,9
+85027,Complete blood count (CBC) without differential,5
+85610,Prothrombin time (PT/INR),5
+85730,Partial thromboplastin time (PTT),8
+84484,Troponin,17
+83880,BNP (B-type natriuretic peptide),36
+85379,D-dimer,15
+81001,Urinalysis with microscopy,5
+81003,Urinalysis automated without microscopy,3
+81025,Urine pregnancy test,10
+87880,Rapid strep test,17
+87804,Rapid influenza test,17
+87428,Rapid COVID/flu combo test,25
+87086,Urine culture,12
+36415,Routine blood draw (venipuncture),3
+71100,Rib X-ray unilateral,29
+90471,Immunization administration (first vaccine),25
+90472,Immunization administration (each additional vaccine),16
+90686,Influenza vaccine (quadrivalent),22
+90715,Tdap vaccine,55
+96372,Therapeutic injection subcutaneous/intramuscular,26
+96373,Therapeutic injection intraarterial,30
+96374,IV push single/initial substance,68
+96375,IV push each additional substance,29
+96376,IV push same substance/drug additional,26
+96360,IV infusion hydration initial 31-60 minutes,28
+96361,IV infusion hydration each additional hour,22
+96365,IV infusion therapeutic initial 1 hour,68
+96366,IV infusion therapeutic each additional hour,20
+94640,Nebulizer treatment,18
+94760,Pulse oximetry,4
+12001,Simple wound repair - small (2.5cm or less),80
+12002,Simple wound repair - medium (2.6-7.5cm),110
+12004,Simple wound repair - large (7.6-12.5cm),140
+12011,Simple repair face/lip/eyelid (2.5cm or less),95
+12013,Simple repair face/lip/eyelid (2.6-5.0cm),120
+12031,Intermediate wound repair - small,150
+12032,Intermediate wound repair - medium,180
+13120,Complex wound repair - trunk small,220
+10060,Incision and drainage of abscess - simple,95
+10160,Puncture aspiration of abscess/hematoma,75
+11042,Debridement subcutaneous tissue,60
+17250,Chemical cauterization of tissue,40
+29125,Application of short arm splint (static),68
+29130,Application of finger splint,35
+29515,Application of short leg splint,72
+29405,Application of short leg cast,95
+29065,Application of long arm cast,110
+29075,Application of short arm cast,90
+29200,Strapping of thorax,45
+20610,Arthrocentesis/injection major joint (knee/shoulder/hip),70
+20600,Arthrocentesis/injection small joint,50
+64450,Injection of peripheral nerve,60
+36600,Arterial puncture for blood gas,18
+51701,Insertion of simple bladder catheter,35
+51702,Insertion of temporary bladder catheter,45
+62270,Spinal fluid tap (lumbar puncture),195
+31500,Emergency intubation,150
+92950,Cardiopulmonary resuscitation (CPR),170
+J7030,Infusion normal saline 1000cc,5
+J7040,Infusion normal saline sterile 50ml,1
+J7050,Infusion normal saline 250cc,3
+J7120,Ringer's lactate infusion up to 1000cc,4
+J2405,Ondansetron injection 4mg (anti-nausea),3
+J1885,Ketorolac injection 15mg (pain/anti-inflammatory),3
+J0696,Ceftriaxone injection 250mg (antibiotic),4
+J1200,Diphenhydramine injection 50mg (antihistamine),1
+J1100,Dexamethasone injection 1mg,1
+J2270,Morphine sulfate injection up to 10mg,2
+J1170,Hydromorphone injection up to 4mg,3
+J3420,Vitamin B12 injection up to 1000mcg,1
+J1580,Gentamicin injection up to 80mg,3
+J2001,Lidocaine HCl for IV infusion 10mg,4
+J0670,Mepivacaine injection up to 10ml,2
+J1642,Heparin injection per 1000 units,1
+J1940,Furosemide injection up to 20mg,1
+J0702,Betamethasone injection per 3mg,4
+J3010,Fentanyl citrate injection 0.1mg,2
