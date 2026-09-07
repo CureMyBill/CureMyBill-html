@@ -7,9 +7,11 @@ on purpose, so it can be called from FastAPI, a CLI, tests, or anything else.
 import base64
 import io
 import os
+import re
 from xml.sax.saxutils import escape as xml_escape
 
 import pandas as pd
+import requests
 from anthropic import Anthropic
 from reportlab.lib.pagesizes import letter as LETTER_PAGESIZE
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
@@ -18,6 +20,7 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
 MODEL = "claude-sonnet-5"
 FEE_SCHEDULE_PATH = os.path.join(os.path.dirname(__file__), "fee_schedule.csv")
+NPI_REGISTRY_URL = "https://npiregistry.cms.hhs.gov/api/"
 
 
 def get_client() -> Anthropic:
@@ -397,3 +400,56 @@ def generate_pdf_bytes(letter_text: str) -> bytes:
     doc.build(story)
     buffer.seek(0)
     return buffer.getvalue()
+
+
+_US_STATE_ABBR_RE = re.compile(r"\b([A-Z]{2})\b\s+\d{5}")
+
+
+def verify_provider_npi(provider_name: str, provider_address: str = "") -> dict:
+    """Check the hospital/provider name against the official CMS NPI Registry
+    (a free, public, keyless government API). This confirms the name exists
+    in that registry — it is NOT a guarantee the provider is currently
+    licensed or in good standing, and the phrasing used anywhere with this
+    result should stay modest and factual for that reason.
+
+    Fails silently (returns not-found) on any network/parsing issue, since
+    this is a "nice to have" trust signal and must never block the core
+    bill-analysis flow.
+    """
+    result = {"checked": True, "found": False, "npi": None, "matched_name": None, "address": None}
+
+    if not provider_name or not provider_name.strip():
+        result["checked"] = False
+        return result
+
+    state_match = _US_STATE_ABBR_RE.search(provider_address or "")
+    params = {
+        "organization_name": provider_name.strip(),
+        "enumeration_type": "NPI-2",
+        "version": "2.1",
+        "limit": 5,
+    }
+    if state_match:
+        params["state"] = state_match.group(1)
+
+    try:
+        resp = requests.get(NPI_REGISTRY_URL, params=params, timeout=8)
+        resp.raise_for_status()
+        data = resp.json()
+        results = data.get("results", [])
+        if results:
+            top = results[0]
+            basic = top.get("basic", {})
+            addresses = top.get("addresses", [])
+            addr = addresses[0] if addresses else {}
+            result["found"] = True
+            result["npi"] = top.get("number")
+            result["matched_name"] = basic.get("organization_name") or basic.get("name")
+            if addr:
+                result["address"] = ", ".join(
+                    filter(None, [addr.get("address_1"), addr.get("city"), addr.get("state"), addr.get("postal_code")])
+                )
+    except Exception:
+        pass  # Non-critical enhancement — never break bill analysis over this.
+
+    return result
