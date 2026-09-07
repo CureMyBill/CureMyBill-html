@@ -361,6 +361,7 @@
 
       <div id="panel-results" class="hidden">
         <h3 style="margin-bottom:14px; color:var(--paper);" data-i18n="bill_info_title">Bill information</h3>
+        <div id="npi-badge" style="margin-bottom:14px; font-size:0.85rem;"></div>
         <div class="form-grid">
           <div><label data-i18n="f_patient">Patient name</label><input id="f-patient" /></div>
           <div><label data-i18n="f_provider">Hospital / provider</label><input id="f-provider" /></div>
@@ -484,6 +485,8 @@
       badge_https: "Encrypted connection (HTTPS)",
       badge_free: "No credit card for the free scan",
       bill_info_title: "Bill information",
+      npi_found: "✓ Provider found in the official CMS NPI registry",
+      npi_not_found: "Provider not found in the CMS NPI registry — this doesn't necessarily mean anything is wrong.",
       f_patient: "Patient name", f_provider: "Hospital / provider", f_provider_addr: "Hospital address",
       f_account: "Account / claim number", f_billdate: "Bill date", f_letterdate: "Letter date",
       sender_title: "Your contact info (letter sender)",
@@ -551,6 +554,8 @@
       badge_https: "Conexión cifrada (HTTPS)",
       badge_free: "No se requiere tarjeta para el escaneo gratuito",
       bill_info_title: "Información de la factura",
+      npi_found: "✓ Proveedor encontrado en el registro oficial NPI del CMS",
+      npi_not_found: "Proveedor no encontrado en el registro NPI del CMS — esto no significa necesariamente que algo esté mal.",
       f_patient: "Nombre del paciente", f_provider: "Hospital / proveedor", f_provider_addr: "Dirección del hospital",
       f_account: "Número de cuenta / reclamo", f_billdate: "Fecha de la factura", f_letterdate: "Fecha de la carta",
       sender_title: "Su información de contacto (remitente de la carta)",
@@ -608,6 +613,7 @@
     document.getElementById("lang-es").classList.toggle("active", lang === "es");
     // Re-render any already-visible dynamic content in the new language
     if (state.comparison && state.comparison.length) renderResultsTable(state.comparison);
+    if (state.npiVerification) renderNpiBadge(state.npiVerification);
     try { localStorage.setItem("curemybill_lang", lang); } catch(e){}
   }
 
@@ -622,7 +628,7 @@
   const PADDLE_PRICE_INSURANCE = "PASTE_YOUR_INSURANCE_APPEAL_PRICE_ID_HERE";
   const PADDLE_PRICE_PHONE = "PASTE_YOUR_PHONE_SCRIPT_PRICE_ID_HERE";
 
-  let state = { auditId: null, extracted: null, comparison: [], letterText: null, selectedFile: null };
+  let state = { auditId: null, extracted: null, comparison: [], letterText: null, selectedFile: null, npiVerification: null };
 
   function $(id){ return document.getElementById(id); }
 
@@ -764,6 +770,7 @@
     $("stat-count").textContent = outliers.length;
 
     renderResultsTable(data.comparison);
+    renderNpiBadge(data.npi_verification);
 
     $("panel-upload").classList.add("hidden");
     $("panel-results").classList.remove("hidden");
@@ -771,6 +778,20 @@
 
     if (outliers.length > 0){
       showToast(T("toast_found").replace("{n}", outliers.length), "success");
+    }
+  }
+
+  function renderNpiBadge(npi){
+    state.npiVerification = npi;
+    const el = $("npi-badge");
+    if (!npi || !npi.checked){
+      el.innerHTML = "";
+      return;
+    }
+    if (npi.found){
+      el.innerHTML = `<span style="color:var(--ledger);">${T("npi_found")} (NPI: ${npi.npi})</span>`;
+    } else {
+      el.innerHTML = `<span style="color:var(--ink-dim);">${T("npi_not_found")}</span>`;
     }
   }
 
