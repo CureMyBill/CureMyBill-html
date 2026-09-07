@@ -57,6 +57,9 @@ async def analyze(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
     comparison_df = logic.compare_to_schedule(extracted.get("line_items", []), FEE_SCHEDULE)
+    npi_result = logic.verify_provider_npi(
+        extracted.get("provider_name", ""), extracted.get("provider_address", "")
+    )
     audit_id = audit_store.new_audit_id()
     audit_store.save_audit(
         audit_id,
@@ -67,6 +70,7 @@ async def analyze(file: UploadFile = File(...)):
         "audit_id": audit_id,
         "extracted": extracted,
         "comparison": comparison_df.to_dict(orient="records"),
+        "npi_verification": npi_result,
     }
 
 
@@ -97,6 +101,9 @@ async def demo():
         "audit_id": audit_id,
         "extracted": sample_extracted,
         "comparison": comparison_df.to_dict(orient="records"),
+        # Skipped for the demo — "St. Jude Community Hospital" is fictional,
+        # a real registry check would just show "not found" and confuse people.
+        "npi_verification": {"checked": False, "found": False, "npi": None, "matched_name": None, "address": None},
     }
 
 
