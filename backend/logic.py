@@ -21,6 +21,7 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 MODEL = "claude-sonnet-5"
 FEE_SCHEDULE_PATH = os.path.join(os.path.dirname(__file__), "fee_schedule.csv")
 NPI_REGISTRY_URL = "https://npiregistry.cms.hhs.gov/api/"
+TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 
 
 def get_client() -> Anthropic:
@@ -453,3 +454,32 @@ def verify_provider_npi(provider_name: str, provider_address: str = "") -> dict:
         pass  # Non-critical enhancement — never break bill analysis over this.
 
     return result
+
+
+def verify_turnstile(token: str, remote_ip: str = None) -> bool:
+    """Verify a Cloudflare Turnstile token server-side (mandatory per Cloudflare's
+    own docs — the client-side widget alone proves nothing).
+
+    Fails CLOSED (returns False) on a missing token or a verification/network
+    error, since this specifically guards a paid Claude API call from bot abuse.
+    The one exception: if TURNSTILE_SECRET_KEY isn't configured yet at all,
+    this fails OPEN (returns True) so the app doesn't break before setup is
+    finished — once the key is set, verification is enforced normally.
+    """
+    secret = os.getenv("TURNSTILE_SECRET_KEY", "")
+    if not secret:
+        return True  # Not configured yet — don't block real users over it.
+
+    if not token:
+        return False
+
+    try:
+        data = {"secret": secret, "response": token}
+        if remote_ip:
+            data["remoteip"] = remote_ip
+        resp = requests.post(TURNSTILE_VERIFY_URL, data=data, timeout=8)
+        resp.raise_for_status()
+        result = resp.json()
+        return bool(result.get("success"))
+    except Exception:
+        return False
