@@ -8,12 +8,15 @@ an audit, and receive Paddle webhooks.
 Run locally with:  uvicorn main:app --reload --port 8000
 """
 
+import hashlib
+import hmac
 import json
 import os
 from typing import Optional
 
 import audit_store
 import logic
+import requests
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
@@ -44,7 +47,10 @@ def _client():
 
 
 @app.post("/api/analyze")
-async def analyze(file: UploadFile = File(...)):
+async def analyze(file: UploadFile = File(...), turnstile_token: str = Form(default="")):
+    if not logic.verify_turnstile(turnstile_token):
+        raise HTTPException(status_code=403, detail="Verification failed. Please refresh the page and try again.")
+
     raw_bytes = await file.read()
     client = _client()
     file_block = logic.bytes_to_content_block(raw_bytes, file.filename or "", file.content_type or "")
