@@ -13,6 +13,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script src="https://unpkg.com/lucide@0.383.0/dist/umd/lucide.js"></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
 <style>
   :root{
@@ -307,6 +308,7 @@
           <button class="btn btn-primary" id="analyze-btn" disabled data-i18n="analyze_btn">Analyze the bill</button>
           <button class="btn btn-ghost" id="demo-btn" data-i18n="demo_btn">▶ Try with a sample bill</button>
         </div>
+        <div class="cf-turnstile" data-sitekey="0x4AAAAAAEtQF2chYLpn6P2D" data-callback="onTurnstileSuccess" data-expired-callback="onTurnstileExpired" style="margin-top:14px;"></div>
         <div class="badges-row">
           <span style="display:inline-flex; align-items:center; gap:5px;"><i data-lucide="trash-2" style="width:14px; height:14px;"></i><span data-i18n="badge_storage">Your file isn't stored after your session</span></span>
           <span style="display:inline-flex; align-items:center; gap:5px;"><i data-lucide="lock" style="width:14px; height:14px;"></i><span data-i18n="badge_https">Encrypted connection (HTTPS)</span></span>
@@ -472,6 +474,7 @@
       faq_a5: "No. CureMyBill generates a request for itemized review that you send yourself. It isn't legal advice.",
       footer_disclaimer: "CureMyBill is an automated document-assistance tool. It does not provide medical or legal advice and is not a substitute for an attorney, a licensed medical billing advocate, or your insurance carrier.",
       err_analyze: "Couldn't analyze this bill: ", err_demo: "Couldn't load the sample bill: ",
+      err_turnstile: "Please wait a moment for the security check to finish, then try again.",
       err_letter: "Couldn't generate the letter: ", err_pdf: "Couldn't generate the PDF: ",
       toast_found: "Found {n} line(s) well above the Medicare rate.",
       toast_demo: "Loaded a sample bill — no upload needed.",
@@ -541,6 +544,7 @@
       faq_a5: "No. CureMyBill genera una solicitud de revisión detallada que usted mismo puede enviar. Esto no es asesoramiento legal.",
       footer_disclaimer: "CureMyBill es una herramienta automatizada de asistencia documental. No brinda asesoría médica ni legal y no sustituye a un abogado, un defensor de facturación médica con licencia, ni a su compañía de seguros.",
       err_analyze: "No se pudo analizar esta factura: ", err_demo: "No se pudo cargar la factura de ejemplo: ",
+      err_turnstile: "Por favor espere un momento a que termine la verificación de seguridad e intente de nuevo.",
       err_letter: "No se pudo generar la carta: ", err_pdf: "No se pudo generar el PDF: ",
       toast_found: "Se encontraron {n} línea(s) muy por encima de la tarifa de Medicare.",
       toast_demo: "Factura de ejemplo cargada — no se necesita subir nada.",
@@ -584,6 +588,9 @@
   const PADDLE_PRICE_PHONE = "PASTE_YOUR_PHONE_SCRIPT_PRICE_ID_HERE";
 
   let state = { auditId: null, extracted: null, comparison: [], letterText: null, selectedFile: null, npiVerification: null };
+  let turnstileToken = "";
+  window.onTurnstileSuccess = function(token){ turnstileToken = token; };
+  window.onTurnstileExpired = function(){ turnstileToken = ""; };
 
   function $(id){ return document.getElementById(id); }
 
@@ -654,6 +661,10 @@
   $("analyze-btn").addEventListener("click", async () => {
     if (!state.selectedFile) return;
     clearError();
+    if (!turnstileToken){
+      showError(T("err_turnstile"));
+      return;
+    }
     const btn = $("analyze-btn");
     const originalText = btn.textContent;
     btn.disabled = true;
@@ -662,11 +673,14 @@
     try {
       const formData = new FormData();
       formData.append("file", state.selectedFile);
+      formData.append("turnstile_token", turnstileToken);
       const data = await apiPost("/api/analyze", formData, true);
       applyAnalysisResult(data);
     } catch (err){
       showError(T("err_analyze") + err.message);
       setStep(1);
+      if (window.turnstile) turnstile.reset();
+      turnstileToken = "";
     } finally {
       btn.disabled = false;
       btn.textContent = originalText;
