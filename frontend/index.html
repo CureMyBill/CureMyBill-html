@@ -149,6 +149,7 @@
   .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:18px;}
   .form-grid label{display:block; font-size:0.8rem; font-weight:700; margin-bottom:5px; color:var(--ink-soft);}
   .form-grid input{width:100%; padding:9px 10px; border:1px solid var(--card-border); border-radius:6px; font-family:inherit; font-size:0.9rem; background:var(--white); color:var(--ink);}
+  .form-grid input:disabled{background:var(--cream-deep); color:var(--ink-dim); cursor:not-allowed;}
   .form-grid input:focus{outline:none; border-color:var(--blue); box-shadow:0 0 0 3px var(--blue-soft);}
 
   .pricing-grid{display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:20px;}
@@ -381,6 +382,10 @@
           <div class="action-row">
             <button class="btn btn-primary" id="download-pdf-btn" data-i18n="download_pdf_btn">⬇ Download the letter as PDF</button>
           </div>
+          <p style="margin-top:22px; padding-top:18px; border-top:1px solid var(--line); font-size:0.92rem; color:var(--ink-soft);">
+            <span data-i18n="another_bill_note">Have another bill to check?</span>
+            <button class="btn btn-ghost" id="analyze-another-btn" style="margin-left:8px; padding:8px 16px; font-size:0.88rem;" data-i18n="another_bill_btn">Analyze another bill</button>
+          </p>
         </div>
       </div>
 
@@ -461,6 +466,7 @@
       addon_insurance: "Insurance Appeal Letter (+$14) — for a denied or underpaid claim",
       addon_phone: "Phone Negotiation Script (+$9) — what to say when you call billing",
       download_pdf_btn: "⬇ Download the letter as PDF",
+      another_bill_note: "Have another bill to check?", another_bill_btn: "Analyze another bill",
       faq_title: "Questions people ask before uploading",
       faq_q1: "Is it legal to dispute my bill using Medicare rates?",
       faq_a1: "Yes. Medicare rates are a public, government-published benchmark. Citing them to request an itemized review is a normal, lawful practice.",
@@ -531,6 +537,7 @@
       addon_insurance: "Carta de Apelación al Seguro (+$14) — para un reclamo denegado o pagado de menos",
       addon_phone: "Guion de Negociación Telefónica (+$9) — qué decir al llamar a facturación",
       download_pdf_btn: "⬇ Descargar la carta en PDF",
+      another_bill_note: "¿Tiene otra factura que revisar?", another_bill_btn: "Analizar otra factura",
       faq_title: "Preguntas frecuentes antes de subir su factura",
       faq_q1: "¿Es legal disputar mi factura usando las tarifas de Medicare?",
       faq_a1: "Sí. Las tarifas de Medicare son una referencia pública publicada por el gobierno. Citarlas para solicitar una revisión detallada es una práctica normal y legal.",
@@ -790,6 +797,10 @@
       $("letter-preview").textContent = data.letter;
       $("panel-letter").classList.remove("hidden");
       setStep(4);
+      // Lock the bill/sender fields now that the letter has been generated from them —
+      // editing them further wouldn't change the already-generated letter.
+      ["f-patient","f-provider","f-provider-addr","f-account","f-billdate","f-letterdate",
+       "f-sender-name","f-sender-addr","f-sender-citystate"].forEach(id => { $(id).disabled = true; });
       $("panel-letter").scrollIntoView({behavior:"smooth", block:"start"});
     } catch (err){
       showError(T("err_letter") + err.message);
@@ -819,7 +830,28 @@
     $("letter-locked-wrap").classList.add("hidden");
     $("letter-unlocked-wrap").classList.remove("hidden");
     $("letter-full").textContent = state.letterText;
+    $("results-table-wrap").classList.remove("blurred");
     showToast(T("toast_paid"), "success");
+  }
+
+  function resetToUpload(){
+    state = { auditId: null, extracted: null, comparison: [], letterText: null, selectedFile: null, npiVerification: null };
+    turnstileToken = "";
+    if (window.turnstile) turnstile.reset();
+    $("file-chip-wrap").innerHTML = "";
+    $("analyze-btn").disabled = true;
+    $("file-input").value = "";
+    ["f-patient","f-provider","f-provider-addr","f-account","f-billdate","f-letterdate",
+     "f-sender-name","f-sender-addr","f-sender-citystate"].forEach(id => { $(id).disabled = false; $(id).value = ""; });
+    $("results-table-wrap").classList.add("blurred");
+    $("letter-locked-wrap").classList.remove("hidden");
+    $("letter-unlocked-wrap").classList.add("hidden");
+    $("panel-letter").classList.add("hidden");
+    $("panel-results").classList.add("hidden");
+    $("panel-upload").classList.remove("hidden");
+    $("npi-badge").innerHTML = "";
+    setStep(1);
+    $("app-section").scrollIntoView({behavior:"smooth", block:"start"});
   }
 
   $("download-pdf-btn").addEventListener("click", async () => {
@@ -838,6 +870,8 @@
       showError(T("err_pdf") + err.message);
     }
   });
+
+  $("analyze-another-btn").addEventListener("click", resetToUpload);
 
   // Initialize language: saved preference, else browser language, else English
   // ================== Lucide icons ==================
