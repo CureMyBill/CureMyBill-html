@@ -32,10 +32,18 @@ def _get_conn() -> sqlite3.Connection:
             paid INTEGER NOT NULL DEFAULT 0,
             paid_plan TEXT,
             purchased_addons TEXT,
+            customer_email TEXT,
+            email_sent INTEGER NOT NULL DEFAULT 0,
             created_at REAL NOT NULL
         )
         """
     )
+    # Backfill columns for databases created before this field existed.
+    existing_cols = {row[1] for row in conn.execute("PRAGMA table_info(audits)")}
+    if "customer_email" not in existing_cols:
+        conn.execute("ALTER TABLE audits ADD COLUMN customer_email TEXT")
+    if "email_sent" not in existing_cols:
+        conn.execute("ALTER TABLE audits ADD COLUMN email_sent INTEGER NOT NULL DEFAULT 0")
     return conn
 
 
@@ -86,15 +94,15 @@ def load_audit(audit_id: str) -> dict | None:
     return result
 
 
-def mark_paid(audit_id: str, plan: str, addons: list) -> bool:
+def mark_paid(audit_id: str, plan: str, addons: list, customer_email: str = None) -> bool:
     """Called by the webhook (or, as a Sandbox/local fallback, by the app
     itself) once a payment is confirmed. Returns False if the audit_id is
     unknown (e.g. a forged/expired id), True if it was updated."""
     conn = _get_conn()
     try:
         cursor = conn.execute(
-            "UPDATE audits SET paid = 1, paid_plan = ?, purchased_addons = ? WHERE audit_id = ?",
-            (plan, json.dumps(addons), audit_id),
+            "UPDATE audits SET paid = 1, paid_plan = ?, purchased_addons = ?, customer_email = ? WHERE audit_id = ?",
+            (plan, json.dumps(addons), customer_email, audit_id),
         )
         conn.commit()
         return cursor.rowcount > 0
@@ -102,17 +110,26 @@ def mark_paid(audit_id: str, plan: str, addons: list) -> bool:
         conn.close()
 
 
-def is_paid(audit_id: str) -> tuple[bool, str | None, list]:
+def mark_email_sent(audit_id: str) -> None:
+    conn = _get_conn()
+    try:
+        conn.execute("UPDATE audits SET email_sent = 1 WHERE audit_id = ?", (audit_id,))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def is_paid(audit_id: str) -> tuple[bool, str | None, list, str | None, bool]:
     conn = _get_conn()
     try:
         row = conn.execute(
-            "SELECT paid, paid_plan, purchased_addons FROM audits WHERE audit_id = ?",
+            "SELECT paid, paid_plan, purchased_addons, customer_email, email_sent FROM audits WHERE audit_id = ?",
             (audit_id,),
         ).fetchone()
     finally:
         conn.close()
 
     if row is None:
-        return False, None, []
-    paid, plan, addons_json = row
-    return bool(paid), plan, (json.loads(addons_json) if addons_json else [])
+        return False, None, [], None, False
+    paid, plan, addons_json, customer_email, email_sent = row
+    return bool(paid), plan, (json.loads(addons_json) if addons_json else []), customer_email, bool(email_sent)
