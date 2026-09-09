@@ -22,6 +22,8 @@ MODEL = "claude-sonnet-5"
 FEE_SCHEDULE_PATH = os.path.join(os.path.dirname(__file__), "fee_schedule.csv")
 NPI_REGISTRY_URL = "https://npiregistry.cms.hhs.gov/api/"
 TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+RESEND_API_URL = "https://api.resend.com/emails"
+PADDLE_API_BASE = "https://sandbox-api.paddle.com"  # Sandbox — switch to api.paddle.com when going Live
 
 
 def get_client() -> Anthropic:
@@ -481,5 +483,75 @@ def verify_turnstile(token: str, remote_ip: str = None) -> bool:
         resp.raise_for_status()
         result = resp.json()
         return bool(result.get("success"))
+    except Exception:
+        return False
+
+
+def get_paddle_customer_email(customer_id: str) -> str:
+    """Look up a customer's email from their Paddle customer_id. The webhook
+    payload only ever includes the id, not the email itself, so this extra
+    call is required. Returns "" on any failure — the caller should treat
+    that as 'email unknown' rather than crash the webhook.
+    """
+    api_key = os.getenv("PADDLE_API_KEY", "")
+    if not api_key or not customer_id:
+        return ""
+    try:
+        resp = requests.get(
+            f"{PADDLE_API_BASE}/customers/{customer_id}",
+            headers={"Authorization": f"Bearer {api_key}"},
+            timeout=8,
+        )
+        resp.raise_for_status()
+        return resp.json().get("data", {}).get("email", "") or ""
+    except Exception:
+        return ""
+
+
+def send_letter_email(to_email: str, patient_name: str, pdf_bytes: bytes) -> bool:
+    """Email the finished dispute letter (as a PDF attachment) via Resend.
+    Returns True only on a confirmed send — the caller decides what to do
+    if this fails (e.g. still let the customer download it in-browser as a
+    fallback, rather than leaving them with nothing).
+    """
+    api_key = os.getenv("RESEND_API_KEY", "")
+    from_address = os.getenv("RESEND_FROM_ADDRESS", "CureMyBill <onboarding@resend.dev>")
+    if not api_key or not to_email:
+        return False
+
+    greeting_name = (patient_name or "").strip() or "there"
+    html_body = f"""
+    <div style="font-family: sans-serif; color: #1C2333; line-height: 1.6;">
+      <h2>Your dispute letter is ready</h2>
+      <p>Hi {xml_escape(greeting_name)},</p>
+      <p>Your medical bill dispute letter is attached to this email as a PDF,
+      ready to print and mail to your hospital's billing department.</p>
+      <p>— CureMyBill</p>
+      <p style="font-size:12px; color:#6b7488; margin-top:24px;">
+      CureMyBill is an automated document-assistance tool. It does not provide
+      medical or legal advice.</p>
+    </div>
+    """
+    payload = {
+        "from": from_address,
+        "to": [to_email],
+        "subject": "Your CureMyBill dispute letter is ready",
+        "html": html_body,
+        "attachments": [
+            {
+                "filename": "dispute_letter.pdf",
+                "content": base64.b64encode(pdf_bytes).decode("utf-8"),
+            }
+        ],
+    }
+    try:
+        resp = requests.post(
+            RESEND_API_URL,
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json=payload,
+            timeout=15,
+        )
+        resp.raise_for_status()
+        return True
     except Exception:
         return False
