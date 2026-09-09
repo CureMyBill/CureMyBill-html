@@ -244,15 +244,34 @@ async def paddle_webhook(request: Request, paddle_signature: str = Header(defaul
         if PRICE_ID_PHONE_SCRIPT and PRICE_ID_PHONE_SCRIPT in price_ids:
             addons.append("phone")
         if audit_id:
-            audit_store.mark_paid(audit_id, plan, addons)
+            customer_id = data.get("customer_id", "")
+            customer_email = logic.get_paddle_customer_email(customer_id) if customer_id else ""
+            audit_store.mark_paid(audit_id, plan, addons, customer_email)
+
+            # Send the letter by email now that we know who to send it to.
+            if customer_email:
+                audit = audit_store.load_audit(audit_id)
+                letter_text = (audit or {}).get("letter")
+                if letter_text:
+                    pdf_bytes = logic.generate_pdf_bytes(letter_text)
+                    patient_name = (audit.get("extracted") or {}).get("patient_name", "")
+                    sent = logic.send_letter_email(customer_email, patient_name, pdf_bytes)
+                    if sent:
+                        audit_store.mark_email_sent(audit_id)
 
     return {"status": "ok"}
 
 
 @app.get("/api/payment-status/{audit_id}")
 async def payment_status(audit_id: str):
-    paid, plan, addons = audit_store.is_paid(audit_id)
-    return {"paid": paid, "plan": plan, "addons": addons}
+    paid, plan, addons, customer_email, email_sent = audit_store.is_paid(audit_id)
+    return {
+        "paid": paid,
+        "plan": plan,
+        "addons": addons,
+        "customer_email": customer_email,
+        "email_sent": email_sent,
+    }
 
 
 # --------------------------------------------------------------------------
