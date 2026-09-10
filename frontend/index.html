@@ -198,6 +198,15 @@
     .stat-grid{grid-template-columns:1fr;}
     .hero h1{font-size:2rem;}
     .app-card{padding:20px;}
+    nav.wrap{padding:12px 14px; gap:8px; flex-wrap:nowrap;}
+    .brand{font-size:1.02rem; gap:6px; flex-shrink:0;}
+    .brand .seal{width:26px; height:26px;}
+    .lang-switch{font-size:0.68rem; flex-shrink:0;}
+    .lang-switch button{padding:5px 7px;}
+    .nav-cta{padding:8px 11px; font-size:0.76rem; white-space:nowrap; flex-shrink:0;}
+  }
+  @media (max-width: 480px){
+    .brand span.brand-text{display:none;}
   }
 </style>
 </head>
@@ -211,7 +220,7 @@
         <circle cx="20" cy="20" r="12.5" fill="none" stroke="#4A9FD8" stroke-width="1.4"/>
         <path d="M13 20.5l4.5 4.5L27 15" fill="none" stroke="#1C2333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      CureMyBill
+      <span class="brand-text">CureMyBill</span>
     </div>
     <div class="nav-links">
       <a href="#how" data-i18n="nav_how">How it works</a>
