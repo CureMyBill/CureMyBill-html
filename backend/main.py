@@ -190,9 +190,22 @@ async def create_phone_script(payload: dict):
 
 @app.post("/api/pdf")
 async def create_pdf(payload: dict):
-    letter_text = payload.get("letter_text", "")
+    audit_id = payload.get("audit_id", "")
+    if not audit_id:
+        raise HTTPException(status_code=400, detail="audit_id is required.")
+
+    # Server-side payment check — this is the actual paywall. The letter
+    # text is also pulled from our own stored audit, never trusted from the
+    # client, so there's nothing for a visitor to fake or bypass client-side.
+    paid, _plan, _addons, _customer_email, _email_sent = audit_store.is_paid(audit_id)
+    if not paid:
+        raise HTTPException(status_code=403, detail="Payment required before the PDF can be downloaded.")
+
+    audit = audit_store.load_audit(audit_id)
+    letter_text = (audit or {}).get("letter", "")
     if not letter_text:
-        raise HTTPException(status_code=400, detail="letter_text is required.")
+        raise HTTPException(status_code=404, detail="No letter found for this audit.")
+
     pdf_bytes = logic.generate_pdf_bytes(letter_text)
     return Response(content=pdf_bytes, media_type="application/pdf")
 
