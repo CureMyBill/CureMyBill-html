@@ -339,11 +339,11 @@
         <h3 style="margin-bottom:14px;" data-i18n="bill_info_title">Bill information</h3>
         <div id="npi-badge" style="margin-bottom:14px; font-size:0.85rem;"></div>
         <div class="form-grid">
-          <div><label data-i18n="f_patient">Patient name</label><input id="f-patient" /></div>
-          <div><label data-i18n="f_provider">Hospital / provider</label><input id="f-provider" /></div>
-          <div><label data-i18n="f_provider_addr">Hospital address</label><input id="f-provider-addr" /></div>
-          <div><label data-i18n="f_account">Account / claim number</label><input id="f-account" /></div>
-          <div><label data-i18n="f_billdate">Bill date</label><input id="f-billdate" /></div>
+          <div><label data-i18n="f_patient">Patient name</label><input id="f-patient" disabled /></div>
+          <div><label data-i18n="f_provider">Hospital / provider</label><input id="f-provider" disabled /></div>
+          <div><label data-i18n="f_provider_addr">Hospital address</label><input id="f-provider-addr" disabled /></div>
+          <div><label data-i18n="f_account">Account / claim number</label><input id="f-account" disabled /></div>
+          <div><label data-i18n="f_billdate">Bill date</label><input id="f-billdate" disabled /></div>
           <div><label data-i18n="f_letterdate">Letter date</label><input id="f-letterdate" /></div>
         </div>
         <h3 style="margin:18px 0 10px;" data-i18n="sender_title">Your contact info (letter sender)</h3>
@@ -513,6 +513,7 @@
       footer_disclaimer: "CureMyBill is an automated document-assistance tool. It does not provide medical or legal advice and is not a substitute for an attorney, a licensed medical billing advocate, or your insurance carrier.",
       err_analyze: "Couldn't analyze this bill: ", err_demo: "Couldn't load the sample bill: ",
       err_turnstile: "Please wait a moment for the security check to finish, then try again.",
+      err_sender_required: "Please fill in your name, address, and city/state/ZIP before generating the letter.",
       err_letter: "Couldn't generate the letter: ", err_pdf: "Couldn't generate the PDF: ",
       toast_found: "Found {n} line(s) well above the Medicare rate.",
       toast_demo: "Loaded a sample bill — no upload needed.",
@@ -590,6 +591,7 @@
       footer_disclaimer: "CureMyBill es una herramienta automatizada de asistencia documental. No brinda asesoría médica ni legal y no sustituye a un abogado, un defensor de facturación médica con licencia, ni a su compañía de seguros.",
       err_analyze: "No se pudo analizar esta factura: ", err_demo: "No se pudo cargar la factura de ejemplo: ",
       err_turnstile: "Por favor espere un momento a que termine la verificación de seguridad e intente de nuevo.",
+      err_sender_required: "Por favor complete su nombre, dirección y ciudad/estado/código postal antes de generar la carta.",
       err_letter: "No se pudo generar la carta: ", err_pdf: "No se pudo generar el PDF: ",
       toast_found: "Se encontraron {n} línea(s) muy por encima de la tarifa de Medicare.",
       toast_demo: "Factura de ejemplo cargada — no se necesita subir nada.",
@@ -811,6 +813,13 @@
 
   $("generate-letter-btn").addEventListener("click", async () => {
     clearError();
+    const senderName = $("f-sender-name").value.trim();
+    const senderAddr = $("f-sender-addr").value.trim();
+    const senderCityState = $("f-sender-citystate").value.trim();
+    if (!senderName || !senderAddr || !senderCityState){
+      showError(T("err_sender_required"));
+      return;
+    }
     const btn = $("generate-letter-btn");
     btn.disabled = true;
     const original = btn.textContent;
@@ -908,8 +917,8 @@
     $("file-chip-wrap").innerHTML = "";
     $("analyze-btn").disabled = true;
     $("file-input").value = "";
-    ["f-patient","f-provider","f-provider-addr","f-account","f-billdate","f-letterdate",
-     "f-sender-name","f-sender-addr","f-sender-citystate"].forEach(id => { $(id).disabled = false; $(id).value = ""; });
+    ["f-patient","f-provider","f-provider-addr","f-account","f-billdate","f-letterdate"].forEach(id => { $(id).value = ""; });
+    ["f-sender-name","f-sender-addr","f-sender-citystate"].forEach(id => { $(id).disabled = false; $(id).value = ""; });
     $("results-table-wrap").classList.add("blurred");
     $("letter-locked-wrap").classList.remove("hidden");
     $("letter-unlocked-wrap").classList.add("hidden");
