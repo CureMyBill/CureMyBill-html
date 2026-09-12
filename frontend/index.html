@@ -151,6 +151,7 @@
   .form-grid input{width:100%; padding:9px 10px; border:1px solid var(--card-border); border-radius:6px; font-family:inherit; font-size:0.9rem; background:var(--white); color:var(--ink);}
   .form-grid input:disabled{background:var(--cream-deep); color:var(--ink-dim); cursor:not-allowed;}
   .form-grid input:focus{outline:none; border-color:var(--blue); box-shadow:0 0 0 3px var(--blue-soft);}
+  .form-grid input.input-required-error{border-color:var(--stamp); box-shadow:0 0 0 3px var(--stamp-soft);}
 
   .pricing-grid{display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:20px;}
   .price-card{background:var(--white); border:1.5px dashed var(--card-border); border-radius:8px; padding:22px;
@@ -344,7 +345,7 @@
           <div><label data-i18n="f_provider_addr">Hospital address</label><input id="f-provider-addr" disabled /></div>
           <div><label data-i18n="f_account">Account / claim number</label><input id="f-account" disabled /></div>
           <div><label data-i18n="f_billdate">Bill date</label><input id="f-billdate" disabled /></div>
-          <div><label data-i18n="f_letterdate">Letter date</label><input id="f-letterdate" /></div>
+          <div><label data-i18n="f_letterdate">Letter date</label><input id="f-letterdate" disabled /></div>
         </div>
         <h3 style="margin:18px 0 10px;" data-i18n="sender_title">Your contact info (letter sender)</h3>
         <div class="form-grid">
@@ -811,11 +812,21 @@
     }
   }
 
+  ["f-sender-name","f-sender-addr","f-sender-citystate"].forEach(id => {
+    $(id).addEventListener("input", () => { if ($(id).value.trim()) $(id).classList.remove("input-required-error"); });
+  });
+
   $("generate-letter-btn").addEventListener("click", async () => {
     clearError();
     const senderName = $("f-sender-name").value.trim();
     const senderAddr = $("f-sender-addr").value.trim();
     const senderCityState = $("f-sender-citystate").value.trim();
+    const requiredFields = [
+      { id: "f-sender-name", filled: !!senderName },
+      { id: "f-sender-addr", filled: !!senderAddr },
+      { id: "f-sender-citystate", filled: !!senderCityState },
+    ];
+    requiredFields.forEach(f => $(f.id).classList.toggle("input-required-error", !f.filled));
     if (!senderName || !senderAddr || !senderCityState){
       showError(T("err_sender_required"));
       return;
@@ -918,7 +929,7 @@
     $("analyze-btn").disabled = true;
     $("file-input").value = "";
     ["f-patient","f-provider","f-provider-addr","f-account","f-billdate","f-letterdate"].forEach(id => { $(id).value = ""; });
-    ["f-sender-name","f-sender-addr","f-sender-citystate"].forEach(id => { $(id).disabled = false; $(id).value = ""; });
+    ["f-sender-name","f-sender-addr","f-sender-citystate"].forEach(id => { $(id).disabled = false; $(id).value = ""; $(id).classList.remove("input-required-error"); });
     $("results-table-wrap").classList.add("blurred");
     $("letter-locked-wrap").classList.remove("hidden");
     $("letter-unlocked-wrap").classList.add("hidden");
