@@ -396,11 +396,19 @@
           <div class="addon-check"><label><input type="checkbox" id="addon-phone"> <span data-i18n="addon_phone">Phone Negotiation Script (+$9) — what to say when you call billing</span></label></div>
         </div>
         <div id="letter-unlocked-wrap" class="hidden">
-          <div class="letter-box" id="letter-full"></div>
-          <div class="action-row">
-            <button class="btn btn-primary" id="download-pdf-btn" data-i18n="download_pdf_btn">⬇ Download the letter as PDF</button>
+          <div id="email-waiting" style="text-align:center; padding:20px 0;">
+            <span class="spinner"></span> <span data-i18n="confirming_payment">Confirming your payment...</span>
           </div>
-          <p style="margin-top:22px; padding-top:18px; border-top:1px solid var(--line); font-size:0.92rem; color:var(--ink-soft);">
+          <div id="email-confirmed" class="hidden" style="text-align:center; padding:10px 0 20px;">
+            <div style="font-size:2.2rem; margin-bottom:8px;">📧</div>
+            <h3 style="margin-bottom:6px;" data-i18n="check_email_title">Check your email!</h3>
+            <p style="color:var(--ink-soft);"><span data-i18n="check_email_body">Your dispute letter has been sent to</span> <strong id="confirmed-email" class="mono"></strong></p>
+          </div>
+          <p style="text-align:center; font-size:0.85rem; color:var(--ink-dim);">
+            <span data-i18n="email_fallback_note">Didn't get it, or want it right now?</span>
+            <button class="btn btn-ghost" id="download-pdf-btn" style="margin-left:6px; padding:6px 14px; font-size:0.82rem;" data-i18n="download_pdf_btn_short">Download PDF instead</button>
+          </p>
+          <p style="margin-top:22px; padding-top:18px; border-top:1px solid var(--line); font-size:0.92rem; color:var(--ink-soft); text-align:center;">
             <span data-i18n="another_bill_note">Have another bill to check?</span>
             <button class="btn btn-ghost" id="analyze-another-btn" style="margin-left:8px; padding:8px 16px; font-size:0.88rem;" data-i18n="another_bill_btn">Analyze another bill</button>
           </p>
@@ -484,6 +492,12 @@
       addon_insurance: "Insurance Appeal Letter (+$14) — for a denied or underpaid claim",
       addon_phone: "Phone Negotiation Script (+$9) — what to say when you call billing",
       download_pdf_btn: "⬇ Download the letter as PDF",
+      confirming_payment: "Confirming your payment...",
+      check_email_title: "Check your email!",
+      check_email_body: "Your dispute letter has been sent to",
+      check_email_generic: "Your dispute letter is ready — check your email for a copy, or download it below.",
+      email_fallback_note: "Didn't get it, or want it right now?",
+      download_pdf_btn_short: "Download PDF instead",
       another_bill_note: "Have another bill to check?", another_bill_btn: "Analyze another bill",
       faq_title: "Questions people ask before uploading",
       faq_q1: "Is it legal to dispute my bill using Medicare rates?",
@@ -555,6 +569,12 @@
       addon_insurance: "Carta de Apelación al Seguro (+$14) — para un reclamo denegado o pagado de menos",
       addon_phone: "Guion de Negociación Telefónica (+$9) — qué decir al llamar a facturación",
       download_pdf_btn: "⬇ Descargar la carta en PDF",
+      confirming_payment: "Confirmando su pago...",
+      check_email_title: "¡Revise su correo electrónico!",
+      check_email_body: "Su carta de disputa ha sido enviada a",
+      check_email_generic: "Su carta de disputa está lista — revise su correo para obtener una copia, o descárguela abajo.",
+      email_fallback_note: "¿No la recibió, o la quiere ahora mismo?",
+      download_pdf_btn_short: "Descargar PDF en su lugar",
       another_bill_note: "¿Tiene otra factura que revisar?", another_bill_btn: "Analizar otra factura",
       faq_title: "Preguntas frecuentes antes de subir su factura",
       faq_q1: "¿Es legal disputar mi factura usando las tarifas de Medicare?",
@@ -847,9 +867,38 @@
   async function unlockLetter(){
     $("letter-locked-wrap").classList.add("hidden");
     $("letter-unlocked-wrap").classList.remove("hidden");
-    $("letter-full").textContent = state.letterText;
     $("results-table-wrap").classList.remove("blurred");
+    $("email-waiting").classList.remove("hidden");
+    $("email-confirmed").classList.add("hidden");
     showToast(T("toast_paid"), "success");
+
+    // Poll our backend for the resolved customer email (the Paddle webhook
+    // resolves it server-side, which can take a few seconds after checkout).
+    let attempts = 0;
+    const maxAttempts = 10; // ~20 seconds
+    const poll = async () => {
+      attempts++;
+      try {
+        const res = await fetch(API_BASE + "/api/payment-status/" + state.auditId);
+        const data = await res.json();
+        if (data.customer_email){
+          $("confirmed-email").textContent = data.customer_email;
+          $("email-waiting").classList.add("hidden");
+          $("email-confirmed").classList.remove("hidden");
+          return;
+        }
+      } catch (err){ /* keep trying */ }
+      if (attempts < maxAttempts){
+        setTimeout(poll, 2000);
+      } else {
+        // Couldn't confirm the email in time — don't leave the customer staring
+        // at a spinner. Fall back to a generic message; the PDF button still works.
+        $("email-waiting").classList.add("hidden");
+        $("email-confirmed").classList.remove("hidden");
+        $("confirmed-email").parentElement.innerHTML = T("check_email_generic");
+      }
+    };
+    poll();
   }
 
   function resetToUpload(){
