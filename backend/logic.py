@@ -508,8 +508,11 @@ def get_paddle_customer_email(customer_id: str) -> str:
         return ""
 
 
-def send_letter_email(to_email: str, patient_name: str, pdf_bytes: bytes) -> bool:
-    """Email the finished dispute letter (as a PDF attachment) via Resend.
+def send_letter_email(to_email: str, patient_name: str, pdf_bytes: bytes, extra_attachments: list = None) -> bool:
+    """Email the finished dispute letter (as a PDF attachment) via Resend,
+    plus any purchased add-on documents (phone script, follow-up letter,
+    insurance appeal letter) passed in extra_attachments as
+    [{"filename": ..., "content": <pdf bytes>}, ...].
     Returns True only on a confirmed send — the caller decides what to do
     if this fails (e.g. still let the customer download it in-browser as a
     fallback, rather than leaving them with nothing).
@@ -519,6 +522,12 @@ def send_letter_email(to_email: str, patient_name: str, pdf_bytes: bytes) -> boo
     if not api_key or not to_email:
         return False
 
+    extra_attachments = extra_attachments or []
+    extra_note = ""
+    if extra_attachments:
+        names = ", ".join(a["filename"].replace(".pdf", "").replace("_", " ") for a in extra_attachments)
+        extra_note = f"<p>Also attached, based on what you purchased: {xml_escape(names)}.</p>"
+
     greeting_name = (patient_name or "").strip() or "there"
     html_body = f"""
     <div style="font-family: sans-serif; color: #1C2333; line-height: 1.6;">
@@ -526,6 +535,7 @@ def send_letter_email(to_email: str, patient_name: str, pdf_bytes: bytes) -> boo
       <p>Hi {xml_escape(greeting_name)},</p>
       <p>Your medical bill dispute letter is attached to this email as a PDF,
       ready to print and mail to your hospital's billing department.</p>
+      {extra_note}
       <p>— CureMyBill</p>
       <p style="font-size:12px; color:#6b7488; margin-top:24px;">
       CureMyBill is an automated document-assistance tool. It does not provide
@@ -542,6 +552,9 @@ def send_letter_email(to_email: str, patient_name: str, pdf_bytes: bytes) -> boo
                 "filename": "dispute_letter.pdf",
                 "content": base64.b64encode(pdf_bytes).decode("utf-8"),
             }
+        ] + [
+            {"filename": a["filename"], "content": base64.b64encode(a["content"]).decode("utf-8")}
+            for a in extra_attachments
         ],
     }
     try:
