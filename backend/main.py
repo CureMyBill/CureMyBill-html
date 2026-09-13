@@ -223,6 +223,7 @@ PADDLE_WEBHOOK_SECRET = os.getenv("PADDLE_WEBHOOK_SECRET", "")
 PRICE_ID_PRO = os.getenv("PADDLE_PRICE_PRO", "")
 PRICE_ID_INSURANCE_APPEAL = os.getenv("PADDLE_PRICE_INSURANCE_APPEAL", "")
 PRICE_ID_PHONE_SCRIPT = os.getenv("PADDLE_PRICE_PHONE_SCRIPT", "")
+PRICE_ID_FOLLOWUP = os.getenv("PADDLE_PRICE_FOLLOWUP", "")
 
 
 def verify_paddle_signature(raw_body: bytes, signature_header: str) -> bool:
@@ -252,14 +253,16 @@ async def paddle_webhook(request: Request, paddle_signature: str = Header(defaul
         price_ids = [item.get("price", {}).get("id") for item in data.get("items", [])]
         plan = "pro" if PRICE_ID_PRO and PRICE_ID_PRO in price_ids else "standard"
         if plan == "pro":
-            # Pro is a flat-price bundle that always includes both add-ons.
-            addons = ["insurance", "phone"]
+            # Pro is a flat-price bundle that always includes all three add-ons.
+            addons = ["insurance", "phone", "followup"]
         else:
             addons = []
             if PRICE_ID_INSURANCE_APPEAL and PRICE_ID_INSURANCE_APPEAL in price_ids:
                 addons.append("insurance")
             if PRICE_ID_PHONE_SCRIPT and PRICE_ID_PHONE_SCRIPT in price_ids:
                 addons.append("phone")
+            if PRICE_ID_FOLLOWUP and PRICE_ID_FOLLOWUP in price_ids:
+                addons.append("followup")
         if audit_id:
             customer_id = data.get("customer_id", "")
             customer_email = logic.get_paddle_customer_email(customer_id) if customer_id else ""
