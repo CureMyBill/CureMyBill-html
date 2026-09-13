@@ -394,7 +394,8 @@
             </div>
           </div>
           <div class="addon-check"><label><input type="checkbox" id="addon-insurance"> <span data-i18n="addon_insurance">Insurance Appeal Letter (+$14) — for a denied or underpaid claim</span></label></div>
-          <div class="addon-check"><label><input type="checkbox" id="addon-phone"> <span data-i18n="addon_phone">Phone Negotiation Script (+$9) — what to say when you call billing</span></label></div>
+          <div class="addon-check"><label><input type="checkbox" id="addon-phone"> <span data-i18n="addon_phone">Phone Negotiation Script (+$12) — what to say when you call billing</span></label></div>
+          <div class="addon-check"><label><input type="checkbox" id="addon-followup"> <span data-i18n="addon_followup">Follow-up Letter (+$9) — if the hospital doesn't reply in 30 days</span></label></div>
         </div>
         <div id="letter-unlocked-wrap" class="hidden">
           <div id="email-waiting" style="text-align:center; padding:20px 0;">
@@ -489,9 +490,10 @@
       letter_lang_note: "The letter itself is always written in English, since it's addressed to a US hospital — regardless of the site language.",
       unlock_cta: "Unlock your letter to download the PDF:",
       plan_standard: "Standard", plan_std_li1: "Complete dispute letter in PDF", plan_std_li2: "Ready to print and send", plan_std_btn: "Unlock — $19",
-      plan_pro: "Pro", plan_pro_li1: "Everything in Standard", plan_pro_li2: "Insurance Appeal Letter included", plan_pro_li3: "Phone Negotiation Script included", plan_pro_li4: "Save $8 vs. buying separately", plan_pro_li5: "Follow-up letter if no reply in 30 days", plan_pro_btn: "Unlock — $34",
+      plan_pro: "Pro", plan_pro_li1: "Everything in Standard", plan_pro_li2: "Insurance Appeal Letter included", plan_pro_li3: "Phone Negotiation Script included", plan_pro_li4: "Save $20 vs. buying separately", plan_pro_li5: "Follow-up letter if no reply in 30 days", plan_pro_btn: "Unlock — $34",
       addon_insurance: "Insurance Appeal Letter (+$14) — for a denied or underpaid claim",
-      addon_phone: "Phone Negotiation Script (+$9) — what to say when you call billing",
+      addon_phone: "Phone Negotiation Script (+$12) — what to say when you call billing",
+      addon_followup: "Follow-up Letter (+$9) — if the hospital doesn't reply in 30 days",
       download_pdf_btn: "⬇ Download the letter as PDF",
       confirming_payment: "Confirming your payment...",
       check_email_title: "Check your email!",
@@ -567,9 +569,10 @@
       letter_lang_note: "La carta siempre se redacta en inglés, ya que está dirigida a un hospital de EE. UU. — sin importar el idioma del sitio.",
       unlock_cta: "Desbloquee su carta para descargarla en PDF:",
       plan_standard: "Standard", plan_std_li1: "Carta de disputa completa en PDF", plan_std_li2: "Lista para imprimir y enviar", plan_std_btn: "Desbloquear — $19",
-      plan_pro: "Pro", plan_pro_li1: "Todo lo incluido en Standard", plan_pro_li2: "Carta de apelación al seguro incluida", plan_pro_li3: "Guion de llamada telefónica incluido", plan_pro_li4: "Ahorra $8 comparado con comprar por separado", plan_pro_li5: "Carta de seguimiento si no hay respuesta en 30 días", plan_pro_btn: "Desbloquear — $34",
+      plan_pro: "Pro", plan_pro_li1: "Todo lo incluido en Standard", plan_pro_li2: "Carta de apelación al seguro incluida", plan_pro_li3: "Guion de llamada telefónica incluido", plan_pro_li4: "Ahorra $20 comparado con comprar por separado", plan_pro_li5: "Carta de seguimiento si no hay respuesta en 30 días", plan_pro_btn: "Desbloquear — $34",
       addon_insurance: "Carta de Apelación al Seguro (+$14) — para un reclamo denegado o pagado de menos",
-      addon_phone: "Guion de Negociación Telefónica (+$9) — qué decir al llamar a facturación",
+      addon_phone: "Guion de Negociación Telefónica (+$12) — qué decir al llamar a facturación",
+      addon_followup: "Carta de Seguimiento (+$9) — si el hospital no responde en 30 días",
       download_pdf_btn: "⬇ Descargar la carta en PDF",
       confirming_payment: "Confirmando su pago...",
       check_email_title: "¡Revise su correo electrónico!",
@@ -632,8 +635,9 @@
   const PADDLE_CLIENT_TOKEN = "test_4a84f6454a686c1c88f85474e51";
   const PADDLE_PRICE_STANDARD = "pri_01m1j5vfzeks8kdyw748xxf7eb";
   const PADDLE_PRICE_PRO = "pri_01m1j61bcz45m327s3a1bhnnn5";
-  const PADDLE_PRICE_INSURANCE = "PASTE_YOUR_INSURANCE_APPEAL_PRICE_ID_HERE";
-  const PADDLE_PRICE_PHONE = "PASTE_YOUR_PHONE_SCRIPT_PRICE_ID_HERE";
+  const PADDLE_PRICE_INSURANCE = "pri_01m2edmdexkq5427yeanyjswyy";
+  const PADDLE_PRICE_PHONE = "pri_01m2edprr15w931akeb1f8ns2q";
+  const PADDLE_PRICE_FOLLOWUP = "pri_01m2eds7thkeye1znprsk32vjs";
 
   let state = { auditId: null, extracted: null, comparison: [], letterText: null, selectedFile: null, npiVerification: null };
   let turnstileToken = "";
@@ -884,6 +888,7 @@
     if (plan !== "pro"){
       if ($("addon-insurance").checked) items.push({ priceId: PADDLE_PRICE_INSURANCE, quantity: 1 });
       if ($("addon-phone").checked) items.push({ priceId: PADDLE_PRICE_PHONE, quantity: 1 });
+      if ($("addon-followup").checked) items.push({ priceId: PADDLE_PRICE_FOLLOWUP, quantity: 1 });
     }
     Paddle.Checkout.open({ items: items, customData: { audit_id: state.auditId, plan: plan } });
   };
