@@ -396,6 +396,14 @@
           <div class="addon-check"><label><input type="checkbox" id="addon-insurance"> <span data-i18n="addon_insurance">Insurance Appeal Letter (+$14) — for a denied or underpaid claim</span></label></div>
           <div class="addon-check"><label><input type="checkbox" id="addon-phone"> <span data-i18n="addon_phone">Phone Negotiation Script (+$12) — what to say when you call billing</span></label></div>
           <div class="addon-check"><label><input type="checkbox" id="addon-followup"> <span data-i18n="addon_followup">Follow-up Letter (+$9) — if the hospital doesn't reply in 30 days</span></label></div>
+          <div id="insurance-info-box" style="margin-top:12px; padding:12px; border:1px dashed var(--card-border); border-radius:8px;">
+            <p style="font-size:0.82rem; color:var(--ink-dim); margin-bottom:8px;" data-i18n="insurance_info_note">Only fill this in if you're also appealing to your insurance company (optional — needed for the Insurance Appeal Letter, included in Pro or as an add-on):</p>
+            <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+              <div><label data-i18n="f_insurer_name">Insurance company name</label><input id="f-insurer-name" /></div>
+              <div><label data-i18n="f_member_id">Member ID</label><input id="f-member-id" /></div>
+              <div><label data-i18n="f_claim_number">Claim number</label><input id="f-claim-number" /></div>
+            </div>
+          </div>
         </div>
         <div id="letter-unlocked-wrap" class="hidden">
           <div id="email-waiting" style="text-align:center; padding:20px 0;">
@@ -410,6 +418,7 @@
             <span data-i18n="email_fallback_note">Didn't get it, or want it right now?</span>
             <button class="btn btn-ghost" id="download-pdf-btn" style="margin-left:6px; padding:6px 14px; font-size:0.82rem;" data-i18n="download_pdf_btn_short">Download PDF instead</button>
           </p>
+          <p id="addon-download-row" style="text-align:center; font-size:0.82rem; margin-top:6px;"></p>
           <p style="margin-top:22px; padding-top:18px; border-top:1px solid var(--line); font-size:0.92rem; color:var(--ink-soft); text-align:center;">
             <span data-i18n="another_bill_note">Have another bill to check?</span>
             <button class="btn btn-ghost" id="analyze-another-btn" style="margin-left:8px; padding:8px 16px; font-size:0.88rem;" data-i18n="another_bill_btn">Analyze another bill</button>
@@ -494,6 +503,9 @@
       addon_insurance: "Insurance Appeal Letter (+$14) — for a denied or underpaid claim",
       addon_phone: "Phone Negotiation Script (+$12) — what to say when you call billing",
       addon_followup: "Follow-up Letter (+$9) — if the hospital doesn't reply in 30 days",
+      insurance_info_note: "Only fill this in if you're also appealing to your insurance company (optional — needed for the Insurance Appeal Letter, included in Pro or as an add-on):",
+      f_insurer_name: "Insurance company name", f_member_id: "Member ID", f_claim_number: "Claim number",
+      download_phone_btn: "Download phone script", download_followup_btn: "Download follow-up letter", download_insurance_btn: "Download insurance appeal letter",
       download_pdf_btn: "⬇ Download the letter as PDF",
       confirming_payment: "Confirming your payment...",
       check_email_title: "Check your email!",
@@ -573,6 +585,9 @@
       addon_insurance: "Carta de Apelación al Seguro (+$14) — para un reclamo denegado o pagado de menos",
       addon_phone: "Guion de Negociación Telefónica (+$12) — qué decir al llamar a facturación",
       addon_followup: "Carta de Seguimiento (+$9) — si el hospital no responde en 30 días",
+      insurance_info_note: "Complete esto solo si también va a apelar ante su compañía de seguros (opcional — necesario para la Carta de Apelación al Seguro, incluida en Pro o como complemento):",
+      f_insurer_name: "Nombre de la aseguradora", f_member_id: "ID de miembro", f_claim_number: "Número de reclamo",
+      download_phone_btn: "Descargar guion telefónico", download_followup_btn: "Descargar carta de seguimiento", download_insurance_btn: "Descargar carta de apelación al seguro",
       download_pdf_btn: "⬇ Descargar la carta en PDF",
       confirming_payment: "Confirmando su pago...",
       check_email_title: "¡Revise su correo electrónico!",
@@ -880,7 +895,19 @@
     }
   });
 
-  window.startCheckout = function(plan){
+  window.startCheckout = async function(plan){
+    try {
+      await fetch(API_BASE + "/api/save-addon-info", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({
+          audit_id: state.auditId,
+          insurer_name: $("f-insurer-name").value,
+          member_id: $("f-member-id").value,
+          claim_number: $("f-claim-number").value,
+        }),
+      });
+    } catch (err) { /* non-blocking — worst case the insurance letter uses placeholders */ }
     const priceId = plan === "pro" ? PADDLE_PRICE_PRO : PADDLE_PRICE_STANDARD;
     const items = [{ priceId: priceId, quantity: 1 }];
     // Pro already bundles both add-ons at its flat price — only Standard
@@ -892,6 +919,48 @@
     }
     Paddle.Checkout.open({ items: items, customData: { audit_id: state.auditId, plan: plan } });
   };
+
+  async function downloadPdf(kind, filename){
+    const res = await fetch(API_BASE + "/api/pdf", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ audit_id: state.auditId, kind: kind })
+    });
+    if (!res.ok){
+      let detail = "";
+      try { detail = (await res.json()).detail || ""; } catch (e) {}
+      throw new Error(detail || ("HTTP " + res.status));
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+
+  const ADDON_LABELS = {
+    phone: { filename: "phone_negotiation_script.pdf", key: "download_phone_btn", fallback: "Phone script" },
+    followup: { filename: "followup_letter.pdf", key: "download_followup_btn", fallback: "Follow-up letter" },
+    insurance: { filename: "insurance_appeal_letter.pdf", key: "download_insurance_btn", fallback: "Insurance appeal letter" },
+  };
+
+  function renderAddonDownloadButtons(addons){
+    const row = $("addon-download-row");
+    row.innerHTML = "";
+    (addons || []).forEach(kind => {
+      const info = ADDON_LABELS[kind];
+      if (!info) return;
+      const btn = document.createElement("button");
+      btn.className = "btn btn-ghost";
+      btn.style.cssText = "margin:4px; padding:6px 14px; font-size:0.82rem;";
+      btn.textContent = T(info.key) || info.fallback;
+      btn.addEventListener("click", async () => {
+        try { await downloadPdf(kind, info.filename); }
+        catch (err){ showError(T("err_pdf") + err.message); }
+      });
+      row.appendChild(btn);
+    });
+  }
 
   async function unlockLetter(){
     $("letter-locked-wrap").classList.add("hidden");
@@ -910,6 +979,7 @@
       try {
         const res = await fetch(API_BASE + "/api/payment-status/" + state.auditId);
         const data = await res.json();
+        renderAddonDownloadButtons(data.addons);
         if (data.customer_email){
           $("confirmed-email").textContent = data.customer_email;
           $("email-waiting").classList.add("hidden");
@@ -939,7 +1009,10 @@
     $("file-input").value = "";
     ["f-patient","f-provider","f-provider-addr","f-account","f-billdate","f-letterdate"].forEach(id => { $(id).value = ""; });
     ["f-sender-name","f-sender-addr","f-sender-citystate"].forEach(id => { $(id).disabled = false; $(id).value = ""; $(id).classList.remove("input-required-error"); });
+    ["f-insurer-name","f-member-id","f-claim-number"].forEach(id => { $(id).value = ""; });
+    ["addon-insurance","addon-phone","addon-followup"].forEach(id => { $(id).checked = false; });
     $("results-table-wrap").classList.add("blurred");
+    $("addon-download-row").innerHTML = "";
     $("letter-locked-wrap").classList.remove("hidden");
     $("letter-unlocked-wrap").classList.add("hidden");
     $("panel-letter").classList.add("hidden");
@@ -952,21 +1025,7 @@
 
   $("download-pdf-btn").addEventListener("click", async () => {
     try {
-      const res = await fetch(API_BASE + "/api/pdf", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({ audit_id: state.auditId })
-      });
-      if (!res.ok){
-        let detail = "";
-        try { detail = (await res.json()).detail || ""; } catch (e) {}
-        throw new Error(detail || ("HTTP " + res.status));
-      }
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = "dispute_letter.pdf";
-      document.body.appendChild(a); a.click(); a.remove();
+      await downloadPdf("letter", "dispute_letter.pdf");
     } catch (err){
       showError(T("err_pdf") + err.message);
     }
