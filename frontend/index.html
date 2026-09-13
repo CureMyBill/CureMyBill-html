@@ -389,7 +389,7 @@
             <div class="price-card pro">
               <div class="plan-name" style="color:var(--blue-deep);" data-i18n="plan_pro">Pro</div>
               <div class="price">$34</div>
-              <ul><li data-i18n="plan_pro_li1">Everything in Standard</li><li data-i18n="plan_pro_li2">Follow-up letter if no reply in 30 days</li></ul>
+              <ul><li data-i18n="plan_pro_li1">Everything in Standard</li><li data-i18n="plan_pro_li2">Insurance Appeal Letter included</li><li data-i18n="plan_pro_li3">Phone Negotiation Script included</li><li data-i18n="plan_pro_li5">Follow-up letter if no reply in 30 days</li><li data-i18n="plan_pro_li4">Save $8 vs. buying separately</li></ul>
               <button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="startCheckout('pro')" data-i18n="plan_pro_btn">Unlock — $34</button>
             </div>
           </div>
@@ -489,7 +489,7 @@
       letter_lang_note: "The letter itself is always written in English, since it's addressed to a US hospital — regardless of the site language.",
       unlock_cta: "Unlock your letter to download the PDF:",
       plan_standard: "Standard", plan_std_li1: "Complete dispute letter in PDF", plan_std_li2: "Ready to print and send", plan_std_btn: "Unlock — $19",
-      plan_pro: "Pro", plan_pro_li1: "Everything in Standard", plan_pro_li2: "Follow-up letter if no reply in 30 days", plan_pro_btn: "Unlock — $34",
+      plan_pro: "Pro", plan_pro_li1: "Everything in Standard", plan_pro_li2: "Insurance Appeal Letter included", plan_pro_li3: "Phone Negotiation Script included", plan_pro_li4: "Save $8 vs. buying separately", plan_pro_li5: "Follow-up letter if no reply in 30 days", plan_pro_btn: "Unlock — $34",
       addon_insurance: "Insurance Appeal Letter (+$14) — for a denied or underpaid claim",
       addon_phone: "Phone Negotiation Script (+$9) — what to say when you call billing",
       download_pdf_btn: "⬇ Download the letter as PDF",
@@ -567,7 +567,7 @@
       letter_lang_note: "La carta siempre se redacta en inglés, ya que está dirigida a un hospital de EE. UU. — sin importar el idioma del sitio.",
       unlock_cta: "Desbloquee su carta para descargarla en PDF:",
       plan_standard: "Standard", plan_std_li1: "Carta de disputa completa en PDF", plan_std_li2: "Lista para imprimir y enviar", plan_std_btn: "Desbloquear — $19",
-      plan_pro: "Pro", plan_pro_li1: "Todo lo incluido en Standard", plan_pro_li2: "Carta de seguimiento si no hay respuesta en 30 días", plan_pro_btn: "Desbloquear — $34",
+      plan_pro: "Pro", plan_pro_li1: "Todo lo incluido en Standard", plan_pro_li2: "Carta de apelación al seguro incluida", plan_pro_li3: "Guion de llamada telefónica incluido", plan_pro_li4: "Ahorra $8 comparado con comprar por separado", plan_pro_li5: "Carta de seguimiento si no hay respuesta en 30 días", plan_pro_btn: "Desbloquear — $34",
       addon_insurance: "Carta de Apelación al Seguro (+$14) — para un reclamo denegado o pagado de menos",
       addon_phone: "Guion de Negociación Telefónica (+$9) — qué decir al llamar a facturación",
       download_pdf_btn: "⬇ Descargar la carta en PDF",
@@ -879,8 +879,12 @@
   window.startCheckout = function(plan){
     const priceId = plan === "pro" ? PADDLE_PRICE_PRO : PADDLE_PRICE_STANDARD;
     const items = [{ priceId: priceId, quantity: 1 }];
-    if ($("addon-insurance").checked) items.push({ priceId: PADDLE_PRICE_INSURANCE, quantity: 1 });
-    if ($("addon-phone").checked) items.push({ priceId: PADDLE_PRICE_PHONE, quantity: 1 });
+    // Pro already bundles both add-ons at its flat price — only Standard
+    // customers pay for them separately, via the checkboxes.
+    if (plan !== "pro"){
+      if ($("addon-insurance").checked) items.push({ priceId: PADDLE_PRICE_INSURANCE, quantity: 1 });
+      if ($("addon-phone").checked) items.push({ priceId: PADDLE_PRICE_PHONE, quantity: 1 });
+    }
     Paddle.Checkout.open({ items: items, customData: { audit_id: state.auditId, plan: plan } });
   };
 
