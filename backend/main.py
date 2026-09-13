@@ -150,9 +150,31 @@ async def create_letter(payload: dict):
     if audit_id:
         existing = audit_store.load_audit(audit_id) or {}
         existing["letter"] = letter
+        existing["sender_name"] = payload.get("sender_name", "")
+        existing["sender_address"] = payload.get("sender_address", "")
+        existing["sender_city_state_zip"] = payload.get("sender_city_state_zip", "")
+        existing["bill_date"] = payload.get("bill_date", "")
+        existing["letter_date"] = payload.get("letter_date", "")
+        existing["disputed_rows"] = payload.get("disputed_rows", [])
         audit_store.save_audit(audit_id, existing)
 
     return {"letter": letter}
+
+
+@app.post("/api/save-addon-info")
+async def save_addon_info(payload: dict):
+    """Store optional insurer details (for the Insurance Appeal Letter add-on)
+    against an audit before checkout, so the webhook can use them once
+    payment is confirmed."""
+    audit_id = payload.get("audit_id", "")
+    if not audit_id:
+        raise HTTPException(status_code=400, detail="audit_id is required.")
+    existing = audit_store.load_audit(audit_id) or {}
+    existing["insurer_name"] = payload.get("insurer_name", "")
+    existing["member_id"] = payload.get("member_id", "")
+    existing["claim_number"] = payload.get("claim_number", "")
+    audit_store.save_audit(audit_id, existing)
+    return {"status": "ok"}
 
 
 @app.post("/api/followup")
@@ -188,25 +210,60 @@ async def create_phone_script(payload: dict):
     return {"letter": script}
 
 
+def _generate_addon_pdf(kind: str, audit: dict) -> bytes:
+    """Generate one purchased add-on document (phone script, follow-up
+    letter, or insurance appeal letter) from stored audit data."""
+    client = logic.get_client()
+    disputed_rows = audit.get("disputed_rows") or []
+    extracted = audit.get("extracted") or {}
+    patient_name = extracted.get("patient_name", "")
+    if kind == "phone":
+        text = logic.generate_phone_script(client, patient_name, extracted.get("account_number", ""), disputed_rows)
+    elif kind == "followup":
+        text = logic.generate_followup_letter(client, audit.get("letter", ""), audit.get("letter_date", ""))
+    elif kind == "insurance":
+        text = logic.generate_insurance_appeal_letter(
+            client,
+            audit.get("sender_name", ""),
+            audit.get("sender_address", ""),
+            audit.get("sender_city_state_zip", ""),
+            audit.get("insurer_name", ""),
+            audit.get("member_id", ""),
+            audit.get("claim_number", ""),
+            patient_name,
+            disputed_rows,
+        )
+    else:
+        raise ValueError(f"Unknown add-on kind: {kind}")
+    return logic.generate_pdf_bytes(text)
+
+
 @app.post("/api/pdf")
 async def create_pdf(payload: dict):
     audit_id = payload.get("audit_id", "")
+    kind = payload.get("kind", "letter")
     if not audit_id:
         raise HTTPException(status_code=400, detail="audit_id is required.")
 
     # Server-side payment check — this is the actual paywall. The letter
     # text is also pulled from our own stored audit, never trusted from the
     # client, so there's nothing for a visitor to fake or bypass client-side.
-    paid, _plan, _addons, _customer_email, _email_sent = audit_store.is_paid(audit_id)
+    paid, _plan, addons, _customer_email, _email_sent = audit_store.is_paid(audit_id)
     if not paid:
         raise HTTPException(status_code=403, detail="Payment required before the PDF can be downloaded.")
 
-    audit = audit_store.load_audit(audit_id)
-    letter_text = (audit or {}).get("letter", "")
-    if not letter_text:
-        raise HTTPException(status_code=404, detail="No letter found for this audit.")
+    audit = audit_store.load_audit(audit_id) or {}
 
-    pdf_bytes = logic.generate_pdf_bytes(letter_text)
+    if kind == "letter":
+        letter_text = audit.get("letter", "")
+        if not letter_text:
+            raise HTTPException(status_code=404, detail="No letter found for this audit.")
+        pdf_bytes = logic.generate_pdf_bytes(letter_text)
+    else:
+        if kind not in addons:
+            raise HTTPException(status_code=403, detail="This add-on wasn't purchased for this audit.")
+        pdf_bytes = _generate_addon_pdf(kind, audit)
+
     return Response(content=pdf_bytes, media_type="application/pdf")
 
 
@@ -275,7 +332,15 @@ async def paddle_webhook(request: Request, paddle_signature: str = Header(defaul
                 if letter_text:
                     pdf_bytes = logic.generate_pdf_bytes(letter_text)
                     patient_name = (audit.get("extracted") or {}).get("patient_name", "")
-                    sent = logic.send_letter_email(customer_email, patient_name, pdf_bytes)
+                    extra_attachments = []
+                    filenames = {"phone": "phone_negotiation_script.pdf", "followup": "followup_letter.pdf", "insurance": "insurance_appeal_letter.pdf"}
+                    for kind, filename in filenames.items():
+                        if kind in addons:
+                            try:
+                                extra_attachments.append({"filename": filename, "content": _generate_addon_pdf(kind, audit)})
+                            except Exception:
+                                pass  # don't let one add-on failure block the main letter email
+                    sent = logic.send_letter_email(customer_email, patient_name, pdf_bytes, extra_attachments)
                     if sent:
                         audit_store.mark_email_sent(audit_id)
 
