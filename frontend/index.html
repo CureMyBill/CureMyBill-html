@@ -153,17 +153,26 @@
   .form-grid input:focus{outline:none; border-color:var(--blue); box-shadow:0 0 0 3px var(--blue-soft);}
   .form-grid input.input-required-error{border-color:var(--stamp); box-shadow:0 0 0 3px var(--stamp-soft);}
 
-  .pricing-grid{display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:20px;}
-  .price-card{background:var(--white); border:1.5px dashed var(--card-border); border-radius:8px; padding:22px;
-    background-image:radial-gradient(circle, var(--cream) 5px, transparent 5.5px);
-    background-size:20px 20px; background-position:top -10px left 0px; background-repeat:repeat-x;}
-  .price-card.pro{border-color:var(--blue);}
-  .price-card .plan-name{font-family:var(--mono); font-size:0.78rem; text-transform:uppercase; color:var(--ink-dim);}
-  .price-card .price{font-family:var(--mono); font-size:1.9rem; margin:8px 0 14px; color:var(--blue-deep); font-weight:700;}
-  .price-card ul{margin-bottom:16px;}
-  .price-card li{padding:6px 0; border-bottom:1px dashed var(--line); font-size:0.88rem; color:var(--ink-soft);}
-  .price-card li:last-child{border-bottom:none;}
-  .addon-check{display:flex; align-items:flex-start; gap:8px; font-size:0.85rem; color:var(--ink-soft); margin-top:10px;}
+  .pricing-grid{display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-top:24px; align-items:stretch;}
+  .price-card{background:var(--white); border:1.5px solid var(--card-border); border-radius:14px; padding:30px 28px; position:relative; display:flex; flex-direction:column;}
+  .price-card.pro{border-color:var(--blue); box-shadow:0 16px 40px rgba(44,110,158,0.16); border-width:2px;}
+  .price-card .plan-badge{position:absolute; top:-13px; right:24px; background:var(--stamp); color:var(--white); font-size:0.72rem; font-weight:700; padding:5px 14px; border-radius:20px; letter-spacing:0.02em;}
+  .price-card .plan-name{font-family:var(--body); font-size:1rem; font-weight:700; color:var(--ink-soft);}
+  .price-card .price-row{display:flex; align-items:baseline; gap:4px; margin:10px 0 2px;}
+  .price-card .price{font-family:var(--display); font-size:2.75rem; font-weight:700; color:var(--ink); line-height:1;}
+  .price-card .price-unit{font-size:0.85rem; color:var(--ink-dim); margin-bottom:20px;}
+  .price-card ul{margin-bottom:22px; flex-grow:1;}
+  .price-card li{display:flex; align-items:flex-start; gap:10px; padding:7px 0; font-size:0.92rem; color:var(--ink-soft); line-height:1.4;}
+  .price-card li svg{flex-shrink:0; margin-top:2px;}
+  .price-card li.li-savings{color:var(--stamp); font-weight:700;}
+  .price-card li.li-savings svg{stroke:var(--stamp);}
+  .addons-box{margin-top:26px; border:1px solid var(--card-border); border-radius:12px; padding:18px 20px; background:var(--cream-deep);}
+  .addons-box > .addons-title{font-size:0.85rem; font-weight:700; color:var(--ink-soft); margin-bottom:10px;}
+  .addon-check{display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:0.9rem; color:var(--ink-soft); padding:9px 0; border-bottom:1px dashed var(--line);}
+  .addon-check:last-child{border-bottom:none;}
+  .addon-check label{display:flex; align-items:center; gap:10px; cursor:pointer; flex-grow:1;}
+  .addon-check input[type="checkbox"]{width:18px; height:18px; accent-color:var(--blue-deep); flex-shrink:0;}
+  .addon-price{font-family:var(--display); font-weight:700; color:var(--blue-deep); white-space:nowrap;}
 
   .toast{position:fixed; bottom:24px; right:24px; background:var(--ink); color:var(--cream); padding:14px 20px; border-radius:8px; font-size:0.9rem; max-width:340px; box-shadow:0 8px 24px rgba(0,0,0,0.25); z-index:100;}
   .toast.error{background:var(--stamp);}
@@ -382,23 +391,38 @@
           <div class="pricing-grid">
             <div class="price-card">
               <div class="plan-name" data-i18n="plan_standard">Standard</div>
-              <div class="price">$19</div>
-              <ul><li data-i18n="plan_std_li1">Complete dispute letter in PDF</li><li data-i18n="plan_std_li2">Ready to print and send</li></ul>
+              <div class="price-row"><div class="price">$19</div></div>
+              <div class="price-unit" data-i18n="price_unit">one-time payment</div>
+              <ul>
+                <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue-deep)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="plan_std_li1">Complete dispute letter in PDF</span></li>
+                <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue-deep)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="plan_std_li2">Ready to print and send</span></li>
+              </ul>
               <button class="btn btn-ghost" style="width:100%; justify-content:center;" onclick="startCheckout('standard')" data-i18n="plan_std_btn">Unlock — $19</button>
             </div>
             <div class="price-card pro">
+              <div class="plan-badge" data-i18n="plan_pro_badge">Best value</div>
               <div class="plan-name" style="color:var(--blue-deep);" data-i18n="plan_pro">Pro</div>
-              <div class="price">$34</div>
-              <ul><li data-i18n="plan_pro_li1">Everything in Standard</li><li data-i18n="plan_pro_li2">Insurance Appeal Letter included</li><li data-i18n="plan_pro_li3">Phone Negotiation Script included</li><li data-i18n="plan_pro_li5">Follow-up letter if no reply in 30 days</li><li data-i18n="plan_pro_li4">Save $8 vs. buying separately</li></ul>
+              <div class="price-row"><div class="price">$34</div></div>
+              <div class="price-unit" data-i18n="price_unit">one-time payment</div>
+              <ul>
+                <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue-deep)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="plan_pro_li1">Everything in Standard</span></li>
+                <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue-deep)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="plan_pro_li2">Insurance Appeal Letter included</span></li>
+                <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue-deep)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="plan_pro_li3">Phone Negotiation Script included</span></li>
+                <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue-deep)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="plan_pro_li5">Follow-up letter if no reply in 30 days</span></li>
+                <li class="li-savings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--stamp)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="plan_pro_li4">Save $20 vs. buying separately</span></li>
+              </ul>
               <button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="startCheckout('pro')" data-i18n="plan_pro_btn">Unlock — $34</button>
             </div>
           </div>
-          <div class="addon-check"><label><input type="checkbox" id="addon-insurance"> <span data-i18n="addon_insurance">Insurance Appeal Letter (+$14) — for a denied or underpaid claim</span></label></div>
-          <div class="addon-check"><label><input type="checkbox" id="addon-phone"> <span data-i18n="addon_phone">Phone Negotiation Script (+$12) — what to say when you call billing</span></label></div>
-          <div class="addon-check"><label><input type="checkbox" id="addon-followup"> <span data-i18n="addon_followup">Follow-up Letter (+$9) — if the hospital doesn't reply in 30 days</span></label></div>
-          <div id="insurance-info-box" style="margin-top:12px; padding:12px; border:1px dashed var(--card-border); border-radius:8px;">
-            <p style="font-size:0.82rem; color:var(--ink-dim); margin-bottom:8px;" data-i18n="insurance_info_note">Required for Pro or the Insurance Appeal Letter add-on — leave blank if you're not also appealing to your insurance company:</p>
-            <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+          <div class="addons-box">
+            <div class="addons-title" data-i18n="addons_title">Or add extra help to your Standard letter:</div>
+            <div class="addon-check"><label><input type="checkbox" id="addon-insurance"> <span data-i18n="addon_insurance">Insurance Appeal Letter — for a denied or underpaid claim</span></label><span class="addon-price">+$14</span></div>
+            <div class="addon-check"><label><input type="checkbox" id="addon-phone"> <span data-i18n="addon_phone">Phone Negotiation Script — what to say when you call billing</span></label><span class="addon-price">+$12</span></div>
+            <div class="addon-check"><label><input type="checkbox" id="addon-followup"> <span data-i18n="addon_followup">Follow-up Letter — if the hospital doesn't reply in 30 days</span></label><span class="addon-price">+$9</span></div>
+          </div>
+          <div id="insurance-info-box" class="addons-box" style="margin-top:14px;">
+            <p style="font-size:0.82rem; color:var(--ink-dim); margin-bottom:12px;" data-i18n="insurance_info_note">Required for Pro or the Insurance Appeal Letter add-on — leave blank if you're not also appealing to your insurance company:</p>
+            <div class="form-grid" style="grid-template-columns:1fr 1fr; margin-bottom:0;">
               <div><label data-i18n="f_insurer_name">Insurance company name</label><input id="f-insurer-name" /></div>
               <div><label data-i18n="f_member_id">Member ID</label><input id="f-member-id" /></div>
               <div><label data-i18n="f_claim_number">Claim number</label><input id="f-claim-number" /></div>
@@ -499,10 +523,11 @@
       letter_lang_note: "The letter itself is always written in English, since it's addressed to a US hospital — regardless of the site language.",
       unlock_cta: "Unlock your letter to download the PDF:",
       plan_standard: "Standard", plan_std_li1: "Complete dispute letter in PDF", plan_std_li2: "Ready to print and send", plan_std_btn: "Unlock — $19",
-      plan_pro: "Pro", plan_pro_li1: "Everything in Standard", plan_pro_li2: "Insurance Appeal Letter included", plan_pro_li3: "Phone Negotiation Script included", plan_pro_li4: "Save $20 vs. buying separately", plan_pro_li5: "Follow-up letter if no reply in 30 days", plan_pro_btn: "Unlock — $34",
-      addon_insurance: "Insurance Appeal Letter (+$14) — for a denied or underpaid claim",
-      addon_phone: "Phone Negotiation Script (+$12) — what to say when you call billing",
-      addon_followup: "Follow-up Letter (+$9) — if the hospital doesn't reply in 30 days",
+      plan_pro: "Pro", plan_pro_badge: "Best value", price_unit: "one-time payment", plan_pro_li1: "Everything in Standard", plan_pro_li2: "Insurance Appeal Letter included", plan_pro_li3: "Phone Negotiation Script included", plan_pro_li4: "Save $20 vs. buying separately", plan_pro_li5: "Follow-up letter if no reply in 30 days", plan_pro_btn: "Unlock — $34",
+      addons_title: "Or add extra help to your Standard letter:",
+      addon_insurance: "Insurance Appeal Letter — for a denied or underpaid claim",
+      addon_phone: "Phone Negotiation Script — what to say when you call billing",
+      addon_followup: "Follow-up Letter — if the hospital doesn't reply in 30 days",
       insurance_info_note: "Required for Pro or the Insurance Appeal Letter add-on — leave blank if you're not also appealing to your insurance company:",
       err_insurance_required: "Please fill in your insurance company name, member ID, and claim number — required for Pro / the Insurance Appeal Letter.",
       f_insurer_name: "Insurance company name", f_member_id: "Member ID", f_claim_number: "Claim number",
@@ -583,10 +608,11 @@
       letter_lang_note: "La carta siempre se redacta en inglés, ya que está dirigida a un hospital de EE. UU. — sin importar el idioma del sitio.",
       unlock_cta: "Desbloquee su carta para descargarla en PDF:",
       plan_standard: "Standard", plan_std_li1: "Carta de disputa completa en PDF", plan_std_li2: "Lista para imprimir y enviar", plan_std_btn: "Desbloquear — $19",
-      plan_pro: "Pro", plan_pro_li1: "Todo lo incluido en Standard", plan_pro_li2: "Carta de apelación al seguro incluida", plan_pro_li3: "Guion de llamada telefónica incluido", plan_pro_li4: "Ahorra $20 comparado con comprar por separado", plan_pro_li5: "Carta de seguimiento si no hay respuesta en 30 días", plan_pro_btn: "Desbloquear — $34",
-      addon_insurance: "Carta de Apelación al Seguro (+$14) — para un reclamo denegado o pagado de menos",
-      addon_phone: "Guion de Negociación Telefónica (+$12) — qué decir al llamar a facturación",
-      addon_followup: "Carta de Seguimiento (+$9) — si el hospital no responde en 30 días",
+      plan_pro: "Pro", plan_pro_badge: "Mejor valor", price_unit: "pago único", plan_pro_li1: "Todo lo incluido en Standard", plan_pro_li2: "Carta de apelación al seguro incluida", plan_pro_li3: "Guion de llamada telefónica incluido", plan_pro_li4: "Ahorra $20 comparado con comprar por separado", plan_pro_li5: "Carta de seguimiento si no hay respuesta en 30 días", plan_pro_btn: "Desbloquear — $34",
+      addons_title: "O añade ayuda extra a tu carta Standard:",
+      addon_insurance: "Carta de Apelación al Seguro — para un reclamo denegado o pagado de menos",
+      addon_phone: "Guion de Negociación Telefónica — qué decir al llamar a facturación",
+      addon_followup: "Carta de Seguimiento — si el hospital no responde en 30 días",
       insurance_info_note: "Obligatorio para Pro o el complemento de Carta de Apelación al Seguro — déjelo en blanco si no va a apelar también ante su seguro:",
       err_insurance_required: "Por favor complete el nombre de la aseguradora, el ID de miembro y el número de reclamo — obligatorio para Pro / la Carta de Apelación al Seguro.",
       f_insurer_name: "Nombre de la aseguradora", f_member_id: "ID de miembro", f_claim_number: "Número de reclamo",
