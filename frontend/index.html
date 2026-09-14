@@ -379,7 +379,7 @@
           <div class="stat-box"><div class="n" id="stat-gap">$0</div><div class="l" data-i18n="stat_gap">Gap on suspicious lines</div></div>
           <div class="stat-box"><div class="n" id="stat-count">0</div><div class="l" data-i18n="stat_count">Lines far above the norm</div></div>
         </div>
-        <div class="locked-badge" data-i18n="table_locked">🔒 Itemized audit locked — unlock below to see exact codes &amp; amounts</div>
+        <div class="locked-badge" data-i18n="table_locked"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Itemized audit locked — unlock below to see exact codes &amp; amounts</div>
         <div id="results-table-wrap" class="blurred">
           <table class="results" id="results-table">
             <thead><tr><th data-i18n="th_cpt">CPT</th><th data-i18n="th_desc">Description</th><th data-i18n="th_billed">Billed</th><th data-i18n="th_medicare">Medicare</th><th data-i18n="th_diff">Diff %</th><th data-i18n="th_status">Status</th></tr></thead>
@@ -388,7 +388,7 @@
         </div>
 
         <div class="action-row">
-          <button class="btn btn-pink" id="generate-letter-btn" data-i18n="generate_letter_btn">✍ Generate the letter</button>
+          <button class="btn btn-pink" id="generate-letter-btn" data-i18n="generate_letter_btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:5px;"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Generate the letter</button>
         </div>
       </div>
 
@@ -533,9 +533,9 @@
       f_sender_name: "Your full name", f_sender_addr: "Your address", f_sender_citystate: "City, State, ZIP",
       comparison_title: "Comparison to the Medicare rate",
       stat_total: "Total billed", stat_gap: "Gap on suspicious lines", stat_count: "Lines far above the norm",
-      table_locked: "🔒 Itemized audit locked — unlock below to see exact codes &amp; amounts",
+      table_locked: "<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"vertical-align:-2px; margin-right:4px;\"><rect x=\"3\" y=\"11\" width=\"18\" height=\"11\" rx=\"2\"/><path d=\"M7 11V7a5 5 0 0 1 10 0v4\"/></svg>Itemized audit locked — unlock below to see exact codes &amp; amounts",
       th_cpt: "CPT", th_desc: "Description", th_billed: "Billed", th_medicare: "Medicare", th_diff: "Diff %", th_status: "Status",
-      generate_letter_btn: "✍ Generate the letter",
+      generate_letter_btn: "<svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"vertical-align:-2px; margin-right:5px;\"><path d=\"M12 20h9\"/><path d=\"M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z\"/></svg>Generate the letter",
       letter_title: "Dispute letter",
       letter_lang_note: "The letter itself is always written in English, since it's addressed to a US hospital — regardless of the site language.",
       unlock_cta: "Unlock your letter to download the PDF:",
@@ -619,9 +619,9 @@
       f_sender_name: "Su nombre completo", f_sender_addr: "Su dirección", f_sender_citystate: "Ciudad, Estado, Código Postal",
       comparison_title: "Comparación con la tarifa de Medicare",
       stat_total: "Total facturado", stat_gap: "Diferencia en líneas sospechosas", stat_count: "Líneas muy por encima de lo normal",
-      table_locked: "🔒 Auditoría detallada bloqueada — desbloquee abajo para ver códigos y montos exactos",
+      table_locked: "<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"vertical-align:-2px; margin-right:4px;\"><rect x=\"3\" y=\"11\" width=\"18\" height=\"11\" rx=\"2\"/><path d=\"M7 11V7a5 5 0 0 1 10 0v4\"/></svg>Auditoría detallada bloqueada — desbloquee abajo para ver códigos y montos exactos",
       th_cpt: "CPT", th_desc: "Descripción", th_billed: "Facturado", th_medicare: "Medicare", th_diff: "Dif. %", th_status: "Estado",
-      generate_letter_btn: "✍ Generar la carta",
+      generate_letter_btn: "<svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"vertical-align:-2px; margin-right:5px;\"><path d=\"M12 20h9\"/><path d=\"M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z\"/></svg>Generar la carta",
       letter_title: "Carta de disputa",
       letter_lang_note: "La carta siempre se redacta en inglés, ya que está dirigida a un hospital de EE. UU. — sin importar el idioma del sitio.",
       unlock_cta: "Desbloquee su carta para descargarla en PDF:",
@@ -769,7 +769,7 @@
 
   function selectFile(file){
     state.selectedFile = file;
-    $("file-chip-wrap").innerHTML = `<div class="file-chip">📄 ${file.name}</div>`;
+    $("file-chip-wrap").innerHTML = `<div class="file-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5z"/><polyline points="14 2 14 8 20 8"/></svg>${file.name}</div>`;
     $("analyze-btn").disabled = false;
     setStep(1);
   }
@@ -913,7 +913,7 @@
     }
     const btn = $("generate-letter-btn");
     btn.disabled = true;
-    const original = btn.textContent;
+    const original = btn.innerHTML;
     btn.innerHTML = '<span class="spinner"></span> ' + T("writing");
     try {
       const disputed = state.comparison.filter(r => r.status === "Well above typical — worth disputing");
@@ -944,7 +944,7 @@
       showError(T("err_letter") + err.message);
     } finally {
       btn.disabled = false;
-      btn.textContent = original;
+      btn.innerHTML = original;
     }
   });
 
