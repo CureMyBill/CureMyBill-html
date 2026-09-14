@@ -154,8 +154,8 @@
   .form-grid input.input-required-error{border-color:var(--stamp); box-shadow:0 0 0 3px var(--stamp-soft);}
 
   .pricing-grid{display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-top:24px; align-items:stretch;}
-  .price-card{background:var(--white); border:1.5px solid var(--card-border); border-radius:14px; padding:30px 28px; position:relative; display:flex; flex-direction:column;}
-  .price-card.pro{border-color:var(--blue); box-shadow:0 16px 40px rgba(44,110,158,0.16); border-width:2px;}
+  .price-card{background:var(--white); border:1.5px solid var(--card-border); border-radius:14px; padding:30px 28px; position:relative; display:flex; flex-direction:column; box-shadow:0 10px 28px rgba(28,35,51,0.07);}
+  .price-card.pro{border-color:var(--blue); box-shadow:0 18px 44px rgba(44,110,158,0.2); border-width:2px;}
   .price-card .plan-badge{position:absolute; top:-13px; right:24px; background:var(--stamp); color:var(--white); font-size:0.72rem; font-weight:700; padding:5px 14px; border-radius:20px; letter-spacing:0.02em;}
   .price-card .plan-name{font-family:var(--body); font-size:1rem; font-weight:700; color:var(--ink-soft);}
   .price-card .price-row{display:flex; align-items:baseline; gap:4px; margin:10px 0 2px;}
@@ -173,6 +173,14 @@
   .addon-check label{display:flex; align-items:center; gap:10px; cursor:pointer; flex-grow:1;}
   .addon-check input[type="checkbox"]{width:18px; height:18px; accent-color:var(--blue-deep); flex-shrink:0;}
   .addon-price{font-family:var(--display); font-weight:700; color:var(--blue-deep); white-space:nowrap;}
+  .addons-toggle{border:none; background:none; margin-top:18px; padding:0; font-size:0.85rem; color:var(--blue-deep); text-decoration:underline; text-align:center; display:block; width:100%;}
+  .addons-toggle summary{justify-content:center; gap:6px; font-family:var(--body); font-size:0.85rem; font-weight:600; color:var(--blue-deep); padding:0; border-bottom:none;}
+  .addons-toggle summary::after{content:"+"; font-size:1.1rem;}
+  .addons-toggle[open] summary::after{transform:rotate(45deg);}
+  .addons-toggle > .addons-box{margin-top:14px;}
+  .trust-row{display:flex; justify-content:center; flex-wrap:wrap; gap:10px 22px; margin-top:22px; padding-top:20px; border-top:1px solid var(--line);}
+  .trust-item{display:flex; align-items:center; gap:7px; font-size:0.82rem; color:var(--ink-dim);}
+  .trust-item svg{flex-shrink:0;}
 
   .toast{position:fixed; bottom:24px; right:24px; background:var(--ink); color:var(--cream); padding:14px 20px; border-radius:8px; font-size:0.9rem; max-width:340px; box-shadow:0 8px 24px rgba(0,0,0,0.25); z-index:100;}
   .toast.error{background:var(--stamp);}
@@ -414,19 +422,26 @@
               <button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="startCheckout('pro')" data-i18n="plan_pro_btn">Unlock — $34</button>
             </div>
           </div>
-          <div class="addons-box">
-            <div class="addons-title" data-i18n="addons_title">Or add extra help to your Standard letter:</div>
-            <div class="addon-check"><label><input type="checkbox" id="addon-insurance"> <span data-i18n="addon_insurance">Insurance Appeal Letter — for a denied or underpaid claim</span></label><span class="addon-price">+$14</span></div>
-            <div class="addon-check"><label><input type="checkbox" id="addon-phone"> <span data-i18n="addon_phone">Phone Negotiation Script — what to say when you call billing</span></label><span class="addon-price">+$12</span></div>
-            <div class="addon-check"><label><input type="checkbox" id="addon-followup"> <span data-i18n="addon_followup">Follow-up Letter — if the hospital doesn't reply in 30 days</span></label><span class="addon-price">+$9</span></div>
-          </div>
-          <div id="insurance-info-box" class="addons-box" style="margin-top:14px;">
+          <details class="addons-toggle">
+            <summary data-i18n="addons_toggle">Need a specific add-on instead?</summary>
+            <div class="addons-box">
+              <div class="addon-check"><label><input type="checkbox" id="addon-insurance"> <span data-i18n="addon_insurance">Insurance Appeal Letter — for a denied or underpaid claim</span></label><span class="addon-price">+$14</span></div>
+              <div class="addon-check"><label><input type="checkbox" id="addon-phone"> <span data-i18n="addon_phone">Phone Negotiation Script — what to say when you call billing</span></label><span class="addon-price">+$12</span></div>
+              <div class="addon-check"><label><input type="checkbox" id="addon-followup"> <span data-i18n="addon_followup">Follow-up Letter — if the hospital doesn't reply in 30 days</span></label><span class="addon-price">+$9</span></div>
+            </div>
+          </details>
+          <div id="insurance-info-box" class="addons-box hidden" style="margin-top:14px;">
             <p style="font-size:0.82rem; color:var(--ink-dim); margin-bottom:12px;" data-i18n="insurance_info_note">Required for Pro or the Insurance Appeal Letter add-on — leave blank if you're not also appealing to your insurance company:</p>
             <div class="form-grid" style="grid-template-columns:1fr 1fr; margin-bottom:0;">
               <div><label data-i18n="f_insurer_name">Insurance company name</label><input id="f-insurer-name" /></div>
               <div><label data-i18n="f_member_id">Member ID</label><input id="f-member-id" /></div>
               <div><label data-i18n="f_claim_number">Claim number</label><input id="f-claim-number" /></div>
             </div>
+          </div>
+          <div class="trust-row">
+            <div class="trust-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span data-i18n="trust_secure">Secure checkout via Paddle</span></div>
+            <div class="trust-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span data-i18n="trust_instant">Instant PDF delivery</span></div>
+            <div class="trust-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg><span data-i18n="trust_cards">Cards & Apple Pay accepted</span></div>
           </div>
         </div>
         <div id="letter-unlocked-wrap" class="hidden">
@@ -524,7 +539,8 @@
       unlock_cta: "Unlock your letter to download the PDF:",
       plan_standard: "Standard", plan_std_li1: "Complete dispute letter in PDF", plan_std_li2: "Ready to print and send", plan_std_btn: "Unlock — $19",
       plan_pro: "Pro", plan_pro_badge: "Best value", price_unit: "one-time payment", plan_pro_li1: "Everything in Standard", plan_pro_li2: "Insurance Appeal Letter included", plan_pro_li3: "Phone Negotiation Script included", plan_pro_li4: "Save $20 vs. buying separately", plan_pro_li5: "Follow-up letter if no reply in 30 days", plan_pro_btn: "Unlock — $34",
-      addons_title: "Or add extra help to your Standard letter:",
+      addons_toggle: "Need a specific add-on instead?",
+      trust_secure: "Secure checkout via Paddle", trust_instant: "Instant PDF delivery", trust_cards: "Cards & Apple Pay accepted",
       addon_insurance: "Insurance Appeal Letter — for a denied or underpaid claim",
       addon_phone: "Phone Negotiation Script — what to say when you call billing",
       addon_followup: "Follow-up Letter — if the hospital doesn't reply in 30 days",
@@ -609,7 +625,8 @@
       unlock_cta: "Desbloquee su carta para descargarla en PDF:",
       plan_standard: "Standard", plan_std_li1: "Carta de disputa completa en PDF", plan_std_li2: "Lista para imprimir y enviar", plan_std_btn: "Desbloquear — $19",
       plan_pro: "Pro", plan_pro_badge: "Mejor valor", price_unit: "pago único", plan_pro_li1: "Todo lo incluido en Standard", plan_pro_li2: "Carta de apelación al seguro incluida", plan_pro_li3: "Guion de llamada telefónica incluido", plan_pro_li4: "Ahorra $20 comparado con comprar por separado", plan_pro_li5: "Carta de seguimiento si no hay respuesta en 30 días", plan_pro_btn: "Desbloquear — $34",
-      addons_title: "O añade ayuda extra a tu carta Standard:",
+      addons_toggle: "¿Necesita solo una opción específica?",
+      trust_secure: "Pago seguro vía Paddle", trust_instant: "Entrega instantánea del PDF", trust_cards: "Tarjetas y Apple Pay aceptados",
       addon_insurance: "Carta de Apelación al Seguro — para un reclamo denegado o pagado de menos",
       addon_phone: "Guion de Negociación Telefónica — qué decir al llamar a facturación",
       addon_followup: "Carta de Seguimiento — si el hospital no responde en 30 días",
@@ -937,10 +954,15 @@
     }
   });
 
+  $("addon-insurance").addEventListener("change", () => {
+    $("insurance-info-box").classList.toggle("hidden", !$("addon-insurance").checked);
+  });
+
   window.startCheckout = async function(plan){
     clearError();
     const needsInsuranceInfo = plan === "pro" || $("addon-insurance").checked;
     if (needsInsuranceInfo){
+      $("insurance-info-box").classList.remove("hidden");
       const insurerName = $("f-insurer-name").value.trim();
       const memberId = $("f-member-id").value.trim();
       const claimNumber = $("f-claim-number").value.trim();
@@ -952,6 +974,7 @@
       insuranceFields.forEach(f => $(f.id).classList.toggle("input-required-error", !f.filled));
       if (!insurerName || !memberId || !claimNumber){
         showError(T("err_insurance_required"));
+        $("insurance-info-box").scrollIntoView({ behavior: "smooth", block: "center" });
         return;
       }
     }
@@ -1069,6 +1092,7 @@
     ["f-patient","f-provider","f-provider-addr","f-account","f-billdate","f-letterdate"].forEach(id => { $(id).value = ""; });
     ["f-sender-name","f-sender-addr","f-sender-citystate"].forEach(id => { $(id).disabled = false; $(id).value = ""; $(id).classList.remove("input-required-error"); });
     ["f-insurer-name","f-member-id","f-claim-number"].forEach(id => { $(id).value = ""; });
+    $("insurance-info-box").classList.add("hidden");
     ["addon-insurance","addon-phone","addon-followup"].forEach(id => { $(id).checked = false; });
     $("results-table-wrap").classList.add("blurred");
     $("addon-download-row").innerHTML = "";
