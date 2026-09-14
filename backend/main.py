@@ -24,6 +24,11 @@ from fastapi.staticfiles import StaticFiles
 
 app = FastAPI(title="CureMyBill API")
 
+
+@app.on_event("startup")
+def _init_database():
+    audit_store.init_db()
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # tighten this to your real domain once deployed
