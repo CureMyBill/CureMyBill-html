@@ -397,7 +397,7 @@
           <div class="addon-check"><label><input type="checkbox" id="addon-phone"> <span data-i18n="addon_phone">Phone Negotiation Script (+$12) — what to say when you call billing</span></label></div>
           <div class="addon-check"><label><input type="checkbox" id="addon-followup"> <span data-i18n="addon_followup">Follow-up Letter (+$9) — if the hospital doesn't reply in 30 days</span></label></div>
           <div id="insurance-info-box" style="margin-top:12px; padding:12px; border:1px dashed var(--card-border); border-radius:8px;">
-            <p style="font-size:0.82rem; color:var(--ink-dim); margin-bottom:8px;" data-i18n="insurance_info_note">Only fill this in if you're also appealing to your insurance company (optional — needed for the Insurance Appeal Letter, included in Pro or as an add-on):</p>
+            <p style="font-size:0.82rem; color:var(--ink-dim); margin-bottom:8px;" data-i18n="insurance_info_note">Required for Pro or the Insurance Appeal Letter add-on — leave blank if you're not also appealing to your insurance company:</p>
             <div class="form-grid" style="grid-template-columns:1fr 1fr;">
               <div><label data-i18n="f_insurer_name">Insurance company name</label><input id="f-insurer-name" /></div>
               <div><label data-i18n="f_member_id">Member ID</label><input id="f-member-id" /></div>
@@ -503,7 +503,8 @@
       addon_insurance: "Insurance Appeal Letter (+$14) — for a denied or underpaid claim",
       addon_phone: "Phone Negotiation Script (+$12) — what to say when you call billing",
       addon_followup: "Follow-up Letter (+$9) — if the hospital doesn't reply in 30 days",
-      insurance_info_note: "Only fill this in if you're also appealing to your insurance company (optional — needed for the Insurance Appeal Letter, included in Pro or as an add-on):",
+      insurance_info_note: "Required for Pro or the Insurance Appeal Letter add-on — leave blank if you're not also appealing to your insurance company:",
+      err_insurance_required: "Please fill in your insurance company name, member ID, and claim number — required for Pro / the Insurance Appeal Letter.",
       f_insurer_name: "Insurance company name", f_member_id: "Member ID", f_claim_number: "Claim number",
       download_phone_btn: "Download phone script", download_followup_btn: "Download follow-up letter", download_insurance_btn: "Download insurance appeal letter",
       download_pdf_btn: "⬇ Download the letter as PDF",
@@ -529,6 +530,7 @@
       err_analyze: "Couldn't analyze this bill: ", err_demo: "Couldn't load the sample bill: ",
       err_turnstile: "Please wait a moment for the security check to finish, then try again.",
       err_sender_required: "Please fill in your name, address, and city/state/ZIP before generating the letter.",
+      err_zip_invalid: "Please include a valid US ZIP code (5 digits) in the City, State, ZIP field.",
       err_letter: "Couldn't generate the letter: ", err_pdf: "Couldn't generate the PDF: ",
       toast_found: "Found {n} line(s) well above the Medicare rate.",
       toast_demo: "Loaded a sample bill — no upload needed.",
@@ -585,7 +587,8 @@
       addon_insurance: "Carta de Apelación al Seguro (+$14) — para un reclamo denegado o pagado de menos",
       addon_phone: "Guion de Negociación Telefónica (+$12) — qué decir al llamar a facturación",
       addon_followup: "Carta de Seguimiento (+$9) — si el hospital no responde en 30 días",
-      insurance_info_note: "Complete esto solo si también va a apelar ante su compañía de seguros (opcional — necesario para la Carta de Apelación al Seguro, incluida en Pro o como complemento):",
+      insurance_info_note: "Obligatorio para Pro o el complemento de Carta de Apelación al Seguro — déjelo en blanco si no va a apelar también ante su seguro:",
+      err_insurance_required: "Por favor complete el nombre de la aseguradora, el ID de miembro y el número de reclamo — obligatorio para Pro / la Carta de Apelación al Seguro.",
       f_insurer_name: "Nombre de la aseguradora", f_member_id: "ID de miembro", f_claim_number: "Número de reclamo",
       download_phone_btn: "Descargar guion telefónico", download_followup_btn: "Descargar carta de seguimiento", download_insurance_btn: "Descargar carta de apelación al seguro",
       download_pdf_btn: "⬇ Descargar la carta en PDF",
@@ -611,6 +614,7 @@
       err_analyze: "No se pudo analizar esta factura: ", err_demo: "No se pudo cargar la factura de ejemplo: ",
       err_turnstile: "Por favor espere un momento a que termine la verificación de seguridad e intente de nuevo.",
       err_sender_required: "Por favor complete su nombre, dirección y ciudad/estado/código postal antes de generar la carta.",
+      err_zip_invalid: "Por favor incluya un código postal de EE. UU. válido (5 dígitos) en el campo Ciudad, Estado, Código postal.",
       err_letter: "No se pudo generar la carta: ", err_pdf: "No se pudo generar el PDF: ",
       toast_found: "Se encontraron {n} línea(s) muy por encima de la tarifa de Medicare.",
       toast_demo: "Factura de ejemplo cargada — no se necesita subir nada.",
@@ -831,7 +835,13 @@
     }
   }
 
-  ["f-sender-name","f-sender-addr","f-sender-citystate"].forEach(id => {
+  ["f-sender-name","f-sender-addr"].forEach(id => {
+    $(id).addEventListener("input", () => { if ($(id).value.trim()) $(id).classList.remove("input-required-error"); });
+  });
+  $("f-sender-citystate").addEventListener("input", () => {
+    if (/\b\d{5}(-\d{4})?\b/.test($("f-sender-citystate").value.trim())) $("f-sender-citystate").classList.remove("input-required-error");
+  });
+  ["f-insurer-name","f-member-id","f-claim-number"].forEach(id => {
     $(id).addEventListener("input", () => { if ($(id).value.trim()) $(id).classList.remove("input-required-error"); });
   });
 
@@ -840,14 +850,20 @@
     const senderName = $("f-sender-name").value.trim();
     const senderAddr = $("f-sender-addr").value.trim();
     const senderCityState = $("f-sender-citystate").value.trim();
+    const US_ZIP_RE = /\b\d{5}(-\d{4})?\b/;
+    const zipValid = US_ZIP_RE.test(senderCityState);
     const requiredFields = [
       { id: "f-sender-name", filled: !!senderName },
       { id: "f-sender-addr", filled: !!senderAddr },
-      { id: "f-sender-citystate", filled: !!senderCityState },
+      { id: "f-sender-citystate", filled: !!senderCityState && zipValid },
     ];
     requiredFields.forEach(f => $(f.id).classList.toggle("input-required-error", !f.filled));
     if (!senderName || !senderAddr || !senderCityState){
       showError(T("err_sender_required"));
+      return;
+    }
+    if (!zipValid){
+      showError(T("err_zip_invalid"));
       return;
     }
     const btn = $("generate-letter-btn");
@@ -896,6 +912,23 @@
   });
 
   window.startCheckout = async function(plan){
+    clearError();
+    const needsInsuranceInfo = plan === "pro" || $("addon-insurance").checked;
+    if (needsInsuranceInfo){
+      const insurerName = $("f-insurer-name").value.trim();
+      const memberId = $("f-member-id").value.trim();
+      const claimNumber = $("f-claim-number").value.trim();
+      const insuranceFields = [
+        { id: "f-insurer-name", filled: !!insurerName },
+        { id: "f-member-id", filled: !!memberId },
+        { id: "f-claim-number", filled: !!claimNumber },
+      ];
+      insuranceFields.forEach(f => $(f.id).classList.toggle("input-required-error", !f.filled));
+      if (!insurerName || !memberId || !claimNumber){
+        showError(T("err_insurance_required"));
+        return;
+      }
+    }
     try {
       await fetch(API_BASE + "/api/save-addon-info", {
         method: "POST",
