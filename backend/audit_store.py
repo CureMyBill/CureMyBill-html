@@ -1,50 +1,71 @@
 """
 audit_store.py — persistence layer for CureMyBill "audits" (one per bill
-analysis). Backed by a simple SQLite file so it works with zero external
-dependencies and zero configuration.
+analysis). Backed by a Postgres database (Render) so data survives
+redeploys and server restarts — a local SQLite file would not.
 
-Two consumers share this same database file:
-1. app.py (the Streamlit app) — writes the extracted/comparison/letter data,
-   reads it back after a page reload via the `audit` URL parameter.
-2. webhook_server.py (optional, deploy separately) — marks an audit as paid
-   once Paddle's webhook confirms a real transaction, which is the only
-   fully trustworthy way to unlock a paywall in production.
-
-This file has no Streamlit-specific code so it can be imported by both.
+Retention policy (see cleanup_expired_audits):
+- Unpaid audits (someone uploaded a bill but never bought anything) are
+  deleted after 48 hours.
+- Paid audits are deleted 30 days after payment. A minimal receipt (no
+  bill/health data — just audit_id, plan, email, paid_at) is kept
+  indefinitely in `purchase_receipts` for accounting/support/legal
+  purposes, matching what the privacy policy promises.
 """
 
 import json
 import os
-import sqlite3
 import time
 import uuid
+from contextlib import contextmanager
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "curemybill_audits.db")
+import psycopg2
+import psycopg2.extras
+
+DATABASE_URL = os.getenv("DATABASE_URL", "")
+
+UNPAID_RETENTION_HOURS = 48
+PAID_RETENTION_DAYS = 30
 
 
-def _get_conn() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH, timeout=10)
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS audits (
-            audit_id TEXT PRIMARY KEY,
-            data TEXT NOT NULL,
-            paid INTEGER NOT NULL DEFAULT 0,
-            paid_plan TEXT,
-            purchased_addons TEXT,
-            customer_email TEXT,
-            email_sent INTEGER NOT NULL DEFAULT 0,
-            created_at REAL NOT NULL
-        )
-        """
-    )
-    # Backfill columns for databases created before this field existed.
-    existing_cols = {row[1] for row in conn.execute("PRAGMA table_info(audits)")}
-    if "customer_email" not in existing_cols:
-        conn.execute("ALTER TABLE audits ADD COLUMN customer_email TEXT")
-    if "email_sent" not in existing_cols:
-        conn.execute("ALTER TABLE audits ADD COLUMN email_sent INTEGER NOT NULL DEFAULT 0")
-    return conn
+@contextmanager
+def _get_conn():
+    conn = psycopg2.connect(DATABASE_URL)
+    try:
+        yield conn
+    finally:
+        conn.close()
+
+
+def init_db() -> None:
+    """Create tables if they don't exist yet. Safe to call on every startup."""
+    with _get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS audits (
+                    audit_id TEXT PRIMARY KEY,
+                    data JSONB NOT NULL,
+                    paid BOOLEAN NOT NULL DEFAULT FALSE,
+                    paid_plan TEXT,
+                    purchased_addons JSONB,
+                    customer_email TEXT,
+                    email_sent BOOLEAN NOT NULL DEFAULT FALSE,
+                    created_at DOUBLE PRECISION NOT NULL,
+                    paid_at DOUBLE PRECISION
+                )
+                """
+            )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS purchase_receipts (
+                    audit_id TEXT PRIMARY KEY,
+                    plan TEXT,
+                    customer_email TEXT,
+                    paid_at DOUBLE PRECISION NOT NULL
+                )
+                """
+            )
+        conn.commit()
 
 
 def new_audit_id() -> str:
@@ -56,80 +77,123 @@ def save_audit(audit_id: str, data: dict) -> None:
     """Create or update the stored data for an audit (extracted bill info,
     comparison table, generated letters — anything needed to rebuild the
     page after a refresh)."""
-    conn = _get_conn()
-    try:
-        conn.execute(
-            """
-            INSERT INTO audits (audit_id, data, created_at)
-            VALUES (?, ?, ?)
-            ON CONFLICT(audit_id) DO UPDATE SET data = excluded.data
-            """,
-            (audit_id, json.dumps(data), time.time()),
-        )
+    with _get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO audits (audit_id, data, created_at)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (audit_id) DO UPDATE SET data = EXCLUDED.data
+                """,
+                (audit_id, psycopg2.extras.Json(data), time.time()),
+            )
         conn.commit()
-    finally:
-        conn.close()
 
 
 def load_audit(audit_id: str) -> dict | None:
     """Fetch a stored audit, including its payment status. Returns None if
     the audit_id doesn't exist (e.g. expired, wrong id, or first visit)."""
-    conn = _get_conn()
-    try:
-        row = conn.execute(
-            "SELECT data, paid, paid_plan, purchased_addons FROM audits WHERE audit_id = ?",
-            (audit_id,),
-        ).fetchone()
-    finally:
-        conn.close()
+    with _get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT data, paid, paid_plan, purchased_addons FROM audits WHERE audit_id = %s",
+                (audit_id,),
+            )
+            row = cur.fetchone()
 
     if row is None:
         return None
 
     data_json, paid, paid_plan, addons_json = row
-    result = json.loads(data_json)
+    result = data_json if isinstance(data_json, dict) else json.loads(data_json)
     result["_paid"] = bool(paid)
     result["_paid_plan"] = paid_plan
-    result["_purchased_addons"] = json.loads(addons_json) if addons_json else []
+    result["_purchased_addons"] = addons_json or []
     return result
 
 
 def mark_paid(audit_id: str, plan: str, addons: list, customer_email: str = None) -> bool:
-    """Called by the webhook (or, as a Sandbox/local fallback, by the app
-    itself) once a payment is confirmed. Returns False if the audit_id is
-    unknown (e.g. a forged/expired id), True if it was updated."""
-    conn = _get_conn()
-    try:
-        cursor = conn.execute(
-            "UPDATE audits SET paid = 1, paid_plan = ?, purchased_addons = ?, customer_email = ? WHERE audit_id = ?",
-            (plan, json.dumps(addons), customer_email, audit_id),
-        )
+    """Called by the webhook once a payment is confirmed. Returns False if
+    the audit_id is unknown (e.g. a forged/expired id), True if updated."""
+    with _get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE audits
+                SET paid = TRUE, paid_plan = %s, purchased_addons = %s,
+                    customer_email = %s, paid_at = %s
+                WHERE audit_id = %s
+                """,
+                (plan, psycopg2.extras.Json(addons), customer_email, time.time(), audit_id),
+            )
+            updated = cur.rowcount > 0
         conn.commit()
-        return cursor.rowcount > 0
-    finally:
-        conn.close()
+        return updated
 
 
 def mark_email_sent(audit_id: str) -> None:
-    conn = _get_conn()
-    try:
-        conn.execute("UPDATE audits SET email_sent = 1 WHERE audit_id = ?", (audit_id,))
+    with _get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("UPDATE audits SET email_sent = TRUE WHERE audit_id = %s", (audit_id,))
         conn.commit()
-    finally:
-        conn.close()
 
 
 def is_paid(audit_id: str) -> tuple[bool, str | None, list, str | None, bool]:
-    conn = _get_conn()
-    try:
-        row = conn.execute(
-            "SELECT paid, paid_plan, purchased_addons, customer_email, email_sent FROM audits WHERE audit_id = ?",
-            (audit_id,),
-        ).fetchone()
-    finally:
-        conn.close()
+    with _get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT paid, paid_plan, purchased_addons, customer_email, email_sent FROM audits WHERE audit_id = %s",
+                (audit_id,),
+            )
+            row = cur.fetchone()
 
     if row is None:
         return False, None, [], None, False
     paid, plan, addons_json, customer_email, email_sent = row
-    return bool(paid), plan, (json.loads(addons_json) if addons_json else []), customer_email, bool(email_sent)
+    return bool(paid), plan, (addons_json or []), customer_email, bool(email_sent)
+
+
+def cleanup_expired_audits() -> dict:
+    """Delete audits per the retention policy described at the top of this
+    file. Intended to run on a schedule (see cleanup.py / the Render Cron
+    Job), not on every request. Returns counts for logging."""
+    now = time.time()
+    unpaid_cutoff = now - UNPAID_RETENTION_HOURS * 3600
+    paid_cutoff = now - PAID_RETENTION_DAYS * 86400
+
+    with _get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM audits WHERE paid = FALSE AND created_at < %s",
+                (unpaid_cutoff,),
+            )
+            deleted_unpaid = cur.rowcount
+
+            # Archive a minimal, non-health receipt before deleting the full
+            # record for old paid audits.
+            cur.execute(
+                """
+                SELECT audit_id, paid_plan, customer_email, paid_at
+                FROM audits
+                WHERE paid = TRUE AND paid_at IS NOT NULL AND paid_at < %s
+                """,
+                (paid_cutoff,),
+            )
+            old_paid = cur.fetchall()
+            for audit_id, plan, customer_email, paid_at in old_paid:
+                cur.execute(
+                    """
+                    INSERT INTO purchase_receipts (audit_id, plan, customer_email, paid_at)
+                    VALUES (%s, %s, %s, %s)
+                    ON CONFLICT (audit_id) DO NOTHING
+                    """,
+                    (audit_id, plan, customer_email, paid_at),
+                )
+            cur.execute(
+                "DELETE FROM audits WHERE paid = TRUE AND paid_at IS NOT NULL AND paid_at < %s",
+                (paid_cutoff,),
+            )
+            deleted_paid = cur.rowcount
+        conn.commit()
+
+    return {"deleted_unpaid": deleted_unpaid, "deleted_paid_archived": deleted_paid}
