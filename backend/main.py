@@ -323,10 +323,13 @@ async def paddle_webhook(request: Request, paddle_signature: str = Header(defaul
         if audit_id:
             customer_id = data.get("customer_id", "")
             customer_email = logic.get_paddle_customer_email(customer_id) if customer_id else ""
+
+            # Idempotency guard: Paddle can (and sometimes does) redeliver the
+            # same event. Don't re-send the email if we already sent it once.
+            already_paid, _prev_plan, _prev_addons, _prev_email, already_sent = audit_store.is_paid(audit_id)
             audit_store.mark_paid(audit_id, plan, addons, customer_email)
 
-            # Send the letter by email now that we know who to send it to.
-            if customer_email:
+            if customer_email and not already_sent:
                 audit = audit_store.load_audit(audit_id)
                 letter_text = (audit or {}).get("letter")
                 if letter_text:
