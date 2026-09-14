@@ -20,11 +20,40 @@ from contextlib import contextmanager
 
 import psycopg2
 import psycopg2.extras
+from cryptography.fernet import Fernet, InvalidToken
 
 DATABASE_URL = os.getenv("DATABASE_URL", "")
+ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY", "")
+_fernet = Fernet(ENCRYPTION_KEY.encode()) if ENCRYPTION_KEY else None
 
 UNPAID_RETENTION_HOURS = 48
 PAID_RETENTION_DAYS = 30
+
+
+def _encrypt(plaintext: str) -> str:
+    """Encrypt a string before it's written to the database. If no
+    encryption key is configured, data is stored as-is (fails loud in
+    production since ENCRYPTION_KEY should always be set there)."""
+    if plaintext is None:
+        return None
+    if not _fernet:
+        return plaintext
+    return _fernet.encrypt(plaintext.encode()).decode()
+
+
+def _decrypt(value: str) -> str:
+    """Decrypt a value read from the database. Falls back to returning the
+    raw value if it isn't a valid encrypted token — this only happens for
+    old test rows written before encryption was added, and lets us read
+    them without crashing instead of silently losing data."""
+    if value is None:
+        return None
+    if not _fernet:
+        return value
+    try:
+        return _fernet.decrypt(value.encode()).decode()
+    except (InvalidToken, ValueError):
+        return value
 
 
 @contextmanager
@@ -44,7 +73,7 @@ def init_db() -> None:
                 """
                 CREATE TABLE IF NOT EXISTS audits (
                     audit_id TEXT PRIMARY KEY,
-                    data JSONB NOT NULL,
+                    data TEXT NOT NULL,
                     paid BOOLEAN NOT NULL DEFAULT FALSE,
                     paid_plan TEXT,
                     purchased_addons JSONB,
@@ -65,6 +94,20 @@ def init_db() -> None:
                 )
                 """
             )
+            # One-time migration: the `data` column was originally created as
+            # JSONB before field-level encryption was added. Encrypted values
+            # are opaque text, not valid JSON, so the column type must be TEXT.
+            # This only ever matters for the handful of rows created before
+            # this change (all test data, pre-launch).
+            cur.execute(
+                """
+                SELECT data_type FROM information_schema.columns
+                WHERE table_name = 'audits' AND column_name = 'data'
+                """
+            )
+            row = cur.fetchone()
+            if row and row[0] == "jsonb":
+                cur.execute("ALTER TABLE audits ALTER COLUMN data TYPE TEXT USING data::text")
         conn.commit()
 
 
@@ -76,7 +119,8 @@ def new_audit_id() -> str:
 def save_audit(audit_id: str, data: dict) -> None:
     """Create or update the stored data for an audit (extracted bill info,
     comparison table, generated letters — anything needed to rebuild the
-    page after a refresh)."""
+    page after a refresh). Encrypted at rest."""
+    encrypted = _encrypt(json.dumps(data))
     with _get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -85,7 +129,7 @@ def save_audit(audit_id: str, data: dict) -> None:
                 VALUES (%s, %s, %s)
                 ON CONFLICT (audit_id) DO UPDATE SET data = EXCLUDED.data
                 """,
-                (audit_id, psycopg2.extras.Json(data), time.time()),
+                (audit_id, encrypted, time.time()),
             )
         conn.commit()
 
@@ -104,8 +148,8 @@ def load_audit(audit_id: str) -> dict | None:
     if row is None:
         return None
 
-    data_json, paid, paid_plan, addons_json = row
-    result = data_json if isinstance(data_json, dict) else json.loads(data_json)
+    data_text, paid, paid_plan, addons_json = row
+    result = json.loads(_decrypt(data_text))
     result["_paid"] = bool(paid)
     result["_paid_plan"] = paid_plan
     result["_purchased_addons"] = addons_json or []
@@ -124,7 +168,7 @@ def mark_paid(audit_id: str, plan: str, addons: list, customer_email: str = None
                     customer_email = %s, paid_at = %s
                 WHERE audit_id = %s
                 """,
-                (plan, psycopg2.extras.Json(addons), customer_email, time.time(), audit_id),
+                (plan, psycopg2.extras.Json(addons), _encrypt(customer_email), time.time(), audit_id),
             )
             updated = cur.rowcount > 0
         conn.commit()
@@ -150,7 +194,7 @@ def is_paid(audit_id: str) -> tuple[bool, str | None, list, str | None, bool]:
     if row is None:
         return False, None, [], None, False
     paid, plan, addons_json, customer_email, email_sent = row
-    return bool(paid), plan, (addons_json or []), customer_email, bool(email_sent)
+    return bool(paid), plan, (addons_json or []), _decrypt(customer_email), bool(email_sent)
 
 
 def cleanup_expired_audits() -> dict:
