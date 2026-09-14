@@ -21,6 +21,7 @@
     --ink:#1C2333; --ink-soft:#4A5468; --ink-dim:#6B7488;
     --blue:#4A9FD8; --blue-soft:rgba(74,159,216,0.14); --blue-deep:#2C6E9E;
     --stamp:#C1443A; --stamp-soft:rgba(193,68,58,0.12);
+    --ledger:#2F6B3F;
     --white:#FFFFFF; --card-border:#D9CDA0;
     --display:'Fraunces', serif; --body:'Manrope', sans-serif; --mono:'JetBrains Mono', monospace;
   }
@@ -872,9 +873,9 @@
       return;
     }
     if (npi.found){
-      el.innerHTML = `<span style="color:var(--ledger);">${T("npi_found")} (NPI: ${npi.npi})</span>`;
+      el.innerHTML = `<span style="color:var(--ledger); font-weight:700; font-size:1.05rem;">${T("npi_found")} (NPI: ${npi.npi})</span>`;
     } else {
-      el.innerHTML = `<span style="color:var(--ink-dim);">${T("npi_not_found")}</span>`;
+      el.innerHTML = `<span style="color:var(--stamp); font-weight:700; font-size:1.05rem;">${T("npi_not_found")}</span>`;
     }
   }
 
