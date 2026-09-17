@@ -667,23 +667,52 @@ def send_letter_email(to_email: str, patient_name: str, pdf_bytes: bytes, extra_
         return False
 
     extra_attachments = extra_attachments or []
-    extra_note = ""
-    if extra_attachments:
-        names = ", ".join(a["filename"].replace(".pdf", "").replace("_", " ") for a in extra_attachments)
-        extra_note = f"<p>Also attached, based on what you purchased: {xml_escape(names)}.</p>"
+    attached_kinds = {a["filename"] for a in extra_attachments}
+
+    # Friendly name + one-line explanation for each possible attachment.
+    ATTACHMENT_INFO = {
+        "dispute_letter.pdf": ("Dispute Letter", "Addressed to your hospital's billing department — print and mail it."),
+        "phone_negotiation_script.pdf": ("Phone Negotiation Script", "What to say when you call the billing department."),
+        "followup_letter.pdf": ("Follow-up Letter", "Send this only if you don't hear back within 30 days."),
+        "insurance_appeal_letter.pdf": ("Insurance Appeal Letter", "Addressed to your insurance company's claims department."),
+    }
+    all_filenames = ["dispute_letter.pdf"] + [a["filename"] for a in extra_attachments]
+    attachments_html = "".join(
+        f'<li style="margin-bottom:8px;"><strong>{xml_escape(ATTACHMENT_INFO[f][0])}</strong> — {xml_escape(ATTACHMENT_INFO[f][1])}</li>'
+        for f in all_filenames if f in ATTACHMENT_INFO
+    )
+
+    # Next steps, built based on what was actually purchased.
+    steps = ["Open the attached <strong>Dispute Letter</strong> and double-check your name, address, and the hospital's details.",
+             "Print it and mail it to your hospital's billing department (the address is already in the letter)."]
+    if "phone_negotiation_script.pdf" in attached_kinds:
+        steps.append("Use the <strong>Phone Negotiation Script</strong> if you'd like to call the billing department directly.")
+    if "insurance_appeal_letter.pdf" in attached_kinds:
+        steps.append("Mail the <strong>Insurance Appeal Letter</strong> to your insurance company's claims department.")
+    if "followup_letter.pdf" in attached_kinds:
+        steps.append("If you don't hear back within 30 days, send the <strong>Follow-up Letter</strong> that's also attached.")
+    steps_html = "".join(f'<li style="margin-bottom:10px;">{s}</li>' for s in steps)
 
     greeting_name = (patient_name or "").strip() or "there"
     html_body = f"""
-    <div style="font-family: sans-serif; color: #1C2333; line-height: 1.6;">
-      <h2>Your dispute letter is ready</h2>
-      <p>Hi {xml_escape(greeting_name)},</p>
-      <p>Your medical bill dispute letter is attached to this email as a PDF,
-      ready to print and mail to your hospital's billing department.</p>
-      {extra_note}
-      <p>— CureMyBill</p>
-      <p style="font-size:12px; color:#6b7488; margin-top:24px;">
-      CureMyBill is an automated document-assistance tool. It does not provide
-      medical or legal advice.</p>
+    <div style="font-family: Georgia, 'Times New Roman', serif; background:#FAF6EA; padding:32px 16px;">
+      <div style="max-width:520px; margin:0 auto; background:#FFFFFF; border-radius:10px; overflow:hidden; border:1px solid #E3D9BC;">
+        <div style="background:#2C6E9E; padding:22px 28px;">
+          <span style="font-family: Georgia, serif; font-size:1.3rem; font-weight:bold; color:#FFFFFF;">CureMyBill</span>
+        </div>
+        <div style="padding:28px; color:#1C2333; line-height:1.6; font-size:15px;">
+          <h2 style="margin-top:0;">Your dispute letter is ready</h2>
+          <p>Hi {xml_escape(greeting_name)},</p>
+          <p>Here's what's attached to this email:</p>
+          <ul style="padding-left:20px; margin:0 0 20px;">{attachments_html}</ul>
+          <p style="font-weight:bold; margin-bottom:6px;">Next steps:</p>
+          <ol style="padding-left:20px; margin:0 0 20px;">{steps_html}</ol>
+          <p>— CureMyBill</p>
+          <p style="font-size:12px; color:#6b7488; margin-top:28px; border-top:1px solid #E3D9BC; padding-top:14px;">
+          CureMyBill is an automated document-assistance tool. It does not provide
+          medical or legal advice.</p>
+        </div>
+      </div>
     </div>
     """
     payload = {
