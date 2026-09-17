@@ -16,7 +16,8 @@ from anthropic import Anthropic
 from reportlab.lib.pagesizes import letter as LETTER_PAGESIZE
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import inch
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
+from reportlab.lib import colors
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 MODEL = "claude-sonnet-5"
 FEE_SCHEDULE_PATH = os.path.join(os.path.dirname(__file__), "fee_schedule.csv")
@@ -24,6 +25,73 @@ NPI_REGISTRY_URL = "https://npiregistry.cms.hhs.gov/api/"
 TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 RESEND_API_URL = "https://api.resend.com/emails"
 PADDLE_API_BASE = "https://sandbox-api.paddle.com"  # Sandbox — switch to api.paddle.com when going Live
+
+# A letter can't hand the AI model responsibility for laying out a clean
+# table of dollar amounts — LLM-written "tables" in prose render as an
+# unaligned wall of text once wrapped into a PDF paragraph. Instead, the
+# model is instructed to place this exact token where the itemized charges
+# belong, and generate_pdf_bytes swaps it for a real ReportLab Table.
+ITEMIZED_TABLE_TOKEN = "{{ITEMIZED_TABLE}}"
+
+
+def _items_plain_text(disputed_rows: list) -> str:
+    """Plain-text rendering of the disputed line items — used for on-screen
+    preview and as context text fed back into later prompts (e.g. the
+    follow-up letter), never for the PDF itself (which uses a real table)."""
+    return "\n".join(
+        f"- CPT {row['cpt_code']}: {row['description']} — billed ${row['billed']:.2f}, "
+        f"Medicare national rate ${row['medicare_rate']:.2f}"
+        + (f" (+{row['difference_pct']}% above the Medicare rate)" if "difference_pct" in row else "")
+        for row in disputed_rows
+    )
+
+
+def render_letter_display_text(letter_text: str, disputed_rows: list) -> str:
+    """Replace the itemized-table token with a readable plain-text list, for
+    contexts that aren't the PDF (the on-screen preview, and feeding this
+    letter as context into a later prompt like the follow-up letter)."""
+    if not letter_text:
+        return letter_text
+    replacement = _items_plain_text(disputed_rows) if disputed_rows else ""
+    return letter_text.replace(ITEMIZED_TABLE_TOKEN, replacement)
+
+
+def _build_items_table(disputed_rows: list) -> Table:
+    header_style = ParagraphStyle("TableHeader", fontName="Helvetica-Bold", fontSize=8.5, textColor=colors.white, leading=11)
+    cell_style = ParagraphStyle("TableCell", fontName="Helvetica", fontSize=8.5, leading=11)
+    cell_style_right = ParagraphStyle("TableCellRight", parent=cell_style, alignment=2)
+
+    header = [
+        Paragraph("CPT Code", header_style),
+        Paragraph("Description", header_style),
+        Paragraph("Billed", header_style),
+        Paragraph("Medicare Rate", header_style),
+        Paragraph("Over By", header_style),
+    ]
+    data = [header]
+    for row in disputed_rows:
+        over_by = f"+{row['difference_pct']}%" if "difference_pct" in row else ""
+        data.append([
+            Paragraph(xml_escape(str(row.get("cpt_code", ""))), cell_style),
+            Paragraph(xml_escape(str(row.get("description", ""))), cell_style),
+            Paragraph(f"${row['billed']:.2f}", cell_style_right),
+            Paragraph(f"${row['medicare_rate']:.2f}", cell_style_right),
+            Paragraph(over_by, cell_style_right),
+        ])
+
+    col_widths = [0.85 * inch, 2.55 * inch, 0.95 * inch, 1.15 * inch, 1.0 * inch]
+    table = Table(data, colWidths=col_widths, repeatRows=1)
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1C2333")),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F5F1E6")]),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#D8D0BB")),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+    ]))
+    return table
 
 
 def get_client() -> Anthropic:
@@ -221,8 +289,15 @@ Patient name: {_val(patient_name, "[Patient Name] — not provided")}
 Account/Claim number: {_val(account_number, "[Account/Claim Number] — not provided")}
 Bill date: {_val(bill_date, "[Bill Date] — not provided")}
 
-Disputed line items (billed amount vs. the official Medicare national reimbursement rate for that CPT code):
+Disputed line items (for your reference only — billed amount vs. the official
+Medicare national reimbursement rate for that CPT code):
 {items_text}
+
+Do NOT reproduce these line items yourself as a list or table in the letter.
+Instead, write one short sentence introducing that the following charges are
+being disputed, then insert the exact token {ITEMIZED_TABLE_TOKEN} alone on
+its own line immediately after that sentence — a formatted table will be
+inserted there automatically. Continue the letter normally after the token.
 
 The letter should request an itemized review, ask the provider to justify the
 charges against standard pricing benchmarks (e.g. Medicare or regional rates),
@@ -252,12 +327,13 @@ Keep it to one page.
 """
 
 
-def generate_followup_letter(client: Anthropic, original_letter: str, original_date: str) -> str:
+def generate_followup_letter(client: Anthropic, original_letter: str, original_date: str, disputed_rows: list = None) -> str:
+    clean_original = render_letter_display_text(original_letter, disputed_rows or [])
     user_prompt = f"""Here is the original dispute letter, sent on {original_date or "[original date]"},
 which has not received a response within 30 days:
 
 ---
-{original_letter}
+{clean_original}
 ---
 
 Write a follow-up letter referencing this original letter, its date, and the
@@ -318,8 +394,15 @@ Member/Policy ID: {_val(member_id, "[Member ID]")}
 Claim number: {_val(claim_number, "[Claim Number]")}
 Patient name: {_val(patient_name, "[Patient Name]")}
 
-Disputed / underpaid line items:
+Disputed / underpaid line items (for your reference only):
 {items_text}
+
+Do NOT reproduce these line items yourself as a list or table in the letter.
+Instead, write one short sentence introducing that the following claims/
+charges are being disputed, then insert the exact token {ITEMIZED_TABLE_TOKEN}
+alone on its own line immediately after that sentence — a formatted table
+will be inserted there automatically. Continue the letter normally after the
+token.
 
 Request reprocessing of the claim, a written explanation of any denial or
 reduced payment, and clarification of network status if relevant.
@@ -374,13 +457,13 @@ assistance / charity care program the hospital may offer.
 _LETTER_CLOSINGS = ("sincerely", "regards", "respectfully", "best regards", "yours truly")
 
 
-def generate_pdf_bytes(letter_text: str) -> bytes:
+def generate_pdf_bytes(letter_text: str, disputed_rows: list = None) -> bytes:
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
         buffer,
         pagesize=LETTER_PAGESIZE,
         topMargin=1 * inch,
-        bottomMargin=1 * inch,
+        bottomMargin=0.85 * inch,
         leftMargin=1 * inch,
         rightMargin=1 * inch,
         title="Medical Bill Dispute Letter",
@@ -388,19 +471,41 @@ def generate_pdf_bytes(letter_text: str) -> bytes:
     styles = getSampleStyleSheet()
     body_style = ParagraphStyle(
         "LetterBody", parent=styles["Normal"], fontName="Times-Roman",
-        fontSize=11, leading=16, spaceAfter=12,
+        fontSize=11, leading=17, spaceAfter=13,
     )
 
-    story = []
-    paragraphs = [p.strip() for p in letter_text.strip().split("\n\n") if p.strip()]
-    for para in paragraphs:
-        safe_html = xml_escape(para).replace("\n", "<br/>")
-        story.append(Paragraph(safe_html, body_style))
-        first_line = para.strip().split("\n")[0].strip().lower().rstrip(",")
-        if first_line in _LETTER_CLOSINGS:
-            story.append(Spacer(1, 50))
+    def _paragraphs_for(text_block: str) -> list:
+        flowables = []
+        for para in (p.strip() for p in text_block.strip().split("\n\n") if p.strip()):
+            safe_html = xml_escape(para).replace("\n", "<br/>")
+            flowables.append(Paragraph(safe_html, body_style))
+            first_line = para.strip().split("\n")[0].strip().lower().rstrip(",")
+            if first_line in _LETTER_CLOSINGS:
+                flowables.append(Spacer(1, 50))
+        return flowables
 
-    doc.build(story)
+    story = []
+    if disputed_rows and ITEMIZED_TABLE_TOKEN in letter_text:
+        before, _, after = letter_text.partition(ITEMIZED_TABLE_TOKEN)
+        story.extend(_paragraphs_for(before))
+        story.append(Spacer(1, 4))
+        story.append(_build_items_table(disputed_rows))
+        story.append(Spacer(1, 16))
+        story.extend(_paragraphs_for(after))
+    else:
+        # No table to insert (phone script, follow-up letter, or the model
+        # didn't include the token) — render as plain paragraphs, and strip
+        # a stray token if one slipped through with no rows to fill it.
+        story.extend(_paragraphs_for(letter_text.replace(ITEMIZED_TABLE_TOKEN, "")))
+
+    def _footer(canvas, doc):
+        canvas.saveState()
+        canvas.setFont("Times-Roman", 8.5)
+        canvas.setFillColor(colors.HexColor("#6b7488"))
+        canvas.drawCentredString(LETTER_PAGESIZE[0] / 2, 0.55 * inch, f"Page {doc.page}")
+        canvas.restoreState()
+
+    doc.build(story, onFirstPage=_footer, onLaterPages=_footer)
     buffer.seek(0)
     return buffer.getvalue()
 
