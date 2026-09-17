@@ -205,6 +205,7 @@ async def create_insurance_appeal(payload: dict):
         payload.get("claim_number", ""),
         payload.get("patient_name", ""),
         disputed_rows,
+        payload.get("letter_date", ""),
     )
     return {"letter": logic.render_letter_display_text(letter, disputed_rows)}
 
@@ -242,6 +243,7 @@ def _generate_addon_pdf(kind: str, audit: dict) -> bytes:
             audit.get("claim_number", ""),
             patient_name,
             disputed_rows,
+            audit.get("letter_date", ""),
         )
         return logic.generate_pdf_bytes(text, disputed_rows)
     else:
