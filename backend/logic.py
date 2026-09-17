@@ -372,6 +372,7 @@ def generate_insurance_appeal_letter(
     claim_number: str,
     patient_name: str,
     disputed_rows: list,
+    letter_date: str = "",
 ) -> str:
     def _val(v, placeholder):
         v = (v or "").strip()
@@ -388,6 +389,7 @@ def generate_insurance_appeal_letter(
 Sender: {_val(sender_name, "[Your Name]")}
 Address: {_val(sender_address, "[Your Address]")}
 City/State/ZIP: {_val(sender_city_state_zip, "[City, State ZIP]")}
+Letter date: {_val(letter_date, "[Date]")}
 
 Insurance company: {_val(insurer_name, "[Insurance Company Name]")}
 Member/Policy ID: {_val(member_id, "[Member ID]")}
@@ -424,6 +426,14 @@ the purpose, citing the specific overbilled line items, asking about a
 self-pay/cash discount or financial assistance program, and what to say if
 the representative pushes back. Keep it concise and actionable — this is a
 cheat sheet, not a formal document. Do not invent facts beyond what is given.
+
+This will be rendered as plain text in a PDF, not displayed as Markdown/HTML.
+Do NOT use any Markdown syntax: no #, ##, or ### headers, no ** or * for bold
+or italic, no --- or *** dividers, and no - or * bullet markers. For section
+titles, just write "1. Opening the call" etc. as plain text on its own line.
+For emphasis, use quotation marks or plain wording instead of bold/italic.
+For a list of items, write each on its own line starting with the item name
+directly (no dash or bullet character needed).
 """
 
 
@@ -456,6 +466,32 @@ assistance / charity care program the hospital may offer.
 
 _LETTER_CLOSINGS = ("sincerely", "regards", "respectfully", "best regards", "yours truly")
 
+# Safety net: the model is instructed not to use Markdown, but if it slips
+# (as LLMs occasionally do, especially for the more casual phone script),
+# this converts common Markdown syntax to real PDF formatting instead of
+# letting literal #, **, and --- characters show up in the document.
+_MD_HR_RE = re.compile(r"^(-{3,}|\*{3,}|_{3,})$")
+_MD_HEADER_RE = re.compile(r"^#{1,6}\s*")
+_MD_BULLET_RE = re.compile(r"^[\-\*]\s+")
+_MD_BOLD_RE = re.compile(r"\*\*(.+?)\*\*")
+_MD_ITALIC_RE = re.compile(r"(?<!\*)\*([^*]+?)\*(?!\*)")
+
+
+def _markdown_line_to_html(line: str):
+    """Convert one line of (possibly Markdown) text to safe Paragraph HTML.
+    Returns None for lines that should be dropped entirely (e.g. a bare
+    '---' divider)."""
+    stripped = line.strip()
+    if _MD_HR_RE.match(stripped):
+        return None
+    is_header = bool(_MD_HEADER_RE.match(stripped))
+    text = _MD_HEADER_RE.sub("", stripped)
+    text = _MD_BULLET_RE.sub("• ", text)
+    escaped = xml_escape(text)
+    escaped = _MD_BOLD_RE.sub(r"<b>\1</b>", escaped)
+    escaped = _MD_ITALIC_RE.sub(r"<i>\1</i>", escaped)
+    return f"<b>{escaped}</b>" if is_header else escaped
+
 
 def generate_pdf_bytes(letter_text: str, disputed_rows: list = None) -> bytes:
     buffer = io.BytesIO()
@@ -477,7 +513,10 @@ def generate_pdf_bytes(letter_text: str, disputed_rows: list = None) -> bytes:
     def _paragraphs_for(text_block: str) -> list:
         flowables = []
         for para in (p.strip() for p in text_block.strip().split("\n\n") if p.strip()):
-            safe_html = xml_escape(para).replace("\n", "<br/>")
+            html_lines = [h for h in (_markdown_line_to_html(l) for l in para.split("\n")) if h is not None]
+            if not html_lines:
+                continue
+            safe_html = "<br/>".join(html_lines)
             flowables.append(Paragraph(safe_html, body_style))
             first_line = para.strip().split("\n")[0].strip().lower().rstrip(",")
             if first_line in _LETTER_CLOSINGS:
