@@ -17,7 +17,8 @@ from reportlab.lib.pagesizes import letter as LETTER_PAGESIZE
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import inch
 from reportlab.lib import colors
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.pdfgen import canvas
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle, HRFlowable
 
 MODEL = "claude-sonnet-5"
 FEE_SCHEDULE_PATH = os.path.join(os.path.dirname(__file__), "fee_schedule.csv")
@@ -82,9 +83,9 @@ def _build_items_table(disputed_rows: list) -> Table:
     col_widths = [0.85 * inch, 2.55 * inch, 0.95 * inch, 1.15 * inch, 1.0 * inch]
     table = Table(data, colWidths=col_widths, repeatRows=1)
     table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1C2333")),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F5F1E6")]),
-        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#D8D0BB")),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#23281F")),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F5F0E3")]),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#E1D9C4")),
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("TOPPADDING", (0, 0), (-1, -1), 6),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
@@ -493,21 +494,94 @@ def _markdown_line_to_html(line: str):
     return f"<b>{escaped}</b>" if is_header else escaped
 
 
-def generate_pdf_bytes(letter_text: str, disputed_rows: list = None) -> bytes:
+# Visual style lifted from the approved design mockup — colors, fonts, and
+# layout only. None of this touches what the letters say or how bills are
+# analyzed; it only changes how the existing text is laid out on the page.
+_DOC_INK = colors.HexColor("#23281F")
+_DOC_MUTED = colors.HexColor("#4A5044")
+_DOC_ACCENT = colors.HexColor("#7A4A1E")
+_DOC_LINE = colors.HexColor("#E1D9C4")
+_DOC_FOOTER_GRAY = colors.HexColor("#8A8470")
+_DOC_SIG_LINE = colors.HexColor("#B9B29D")
+_DOC_LABEL_ROW = colors.HexColor("#6E6857")
+
+
+class _LetterheadCanvas(canvas.Canvas):
+    """Buffers pages so the footer can show 'Page X of Y' (reportlab doesn't
+    know the total page count until every page has been drawn)."""
+
+    def __init__(self, *args, **kwargs):
+        self._header_kwargs = kwargs.pop("header_kwargs")
+        super().__init__(*args, **kwargs)
+        self._saved_page_states = []
+
+    def showPage(self):
+        self._saved_page_states.append(dict(self.__dict__))
+        self._startPage()
+
+    def save(self):
+        total_pages = len(self._saved_page_states)
+        for state in self._saved_page_states:
+            self.__dict__.update(state)
+            self._draw_letterhead(total_pages)
+            super().showPage()
+        super().save()
+
+    def _draw_letterhead(self, total_pages):
+        hk = self._header_kwargs
+        width, height = LETTER_PAGESIZE
+        top = height - 0.8 * inch
+
+        self.setFont("Times-Roman", 15)
+        self.setFillColor(_DOC_INK)
+        self.drawString(0.9 * inch, top, hk["title"])
+
+        self.setFont("Times-Roman", 8.5)
+        self.setFillColor(_DOC_MUTED)
+        right_lines = hk.get("right_lines") or []
+        ry = top + 2
+        for line in reversed(right_lines):
+            self.drawRightString(width - 0.9 * inch, ry, line)
+            ry += 11
+
+        self.setStrokeColor(_DOC_INK)
+        self.setLineWidth(1.3)
+        self.line(0.9 * inch, top - 8, width - 0.9 * inch, top - 8)
+
+        self.setFont("Helvetica", 8)
+        self.setFillColor(_DOC_ACCENT)
+        self.drawString(0.9 * inch, top - 22, hk.get("kind_label", "").upper())
+
+        self.setFont("Times-Roman", 8)
+        self.setFillColor(_DOC_FOOTER_GRAY)
+        self.drawString(0.9 * inch, 0.6 * inch, "Prepared with CureMyBill · not medical or legal advice")
+        self.drawRightString(width - 0.9 * inch, 0.6 * inch, f"Page {self._pageNumber} of {total_pages}")
+        self.setStrokeColor(_DOC_LINE)
+        self.setLineWidth(0.75)
+        self.line(0.9 * inch, 0.72 * inch, width - 0.9 * inch, 0.72 * inch)
+
+
+def generate_pdf_bytes(
+    letter_text: str,
+    disputed_rows: list = None,
+    header_title: str = "",
+    header_kind_label: str = "",
+    header_right_lines: list = None,
+    summary_rows: list = None,
+) -> bytes:
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
         buffer,
         pagesize=LETTER_PAGESIZE,
-        topMargin=1 * inch,
-        bottomMargin=0.85 * inch,
-        leftMargin=1 * inch,
-        rightMargin=1 * inch,
-        title="Medical Bill Dispute Letter",
+        topMargin=1.35 * inch,
+        bottomMargin=0.95 * inch,
+        leftMargin=0.9 * inch,
+        rightMargin=0.9 * inch,
+        title="CureMyBill Document",
     )
-    styles = getSampleStyleSheet()
     body_style = ParagraphStyle(
-        "LetterBody", parent=styles["Normal"], fontName="Times-Roman",
-        fontSize=11, leading=17, spaceAfter=13,
+        "LetterBody", fontName="Times-Roman", fontSize=11, leading=17,
+        spaceAfter=13, textColor=_DOC_INK,
     )
 
     def _paragraphs_for(text_block: str) -> list:
@@ -520,10 +594,24 @@ def generate_pdf_bytes(letter_text: str, disputed_rows: list = None) -> bytes:
             flowables.append(Paragraph(safe_html, body_style))
             first_line = para.strip().split("\n")[0].strip().lower().rstrip(",")
             if first_line in _LETTER_CLOSINGS:
-                flowables.append(Spacer(1, 50))
+                flowables.append(HRFlowable(width=3.1 * inch, thickness=1, color=_DOC_SIG_LINE,
+                                             spaceBefore=0.42 * inch, spaceAfter=6, hAlign="LEFT"))
         return flowables
 
     story = []
+    if summary_rows:
+        label_style = ParagraphStyle("SummaryLabel", fontName="Times-Roman", fontSize=10, textColor=_DOC_LABEL_ROW)
+        value_style = ParagraphStyle("SummaryValue", fontName="Times-Roman", fontSize=10, textColor=_DOC_INK)
+        rows = [[Paragraph(xml_escape(label), label_style), Paragraph(xml_escape(str(value)), value_style)]
+                for label, value in summary_rows]
+        t = Table(rows, colWidths=[1.6 * inch, 4.0 * inch], hAlign="LEFT")
+        t.setStyle(TableStyle([
+            ("TOPPADDING", (0, 0), (-1, -1), 1), ("BOTTOMPADDING", (0, 0), (-1, -1), 1),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ]))
+        story.append(t)
+        story.append(Spacer(1, 18))
+
     if disputed_rows and ITEMIZED_TABLE_TOKEN in letter_text:
         before, _, after = letter_text.partition(ITEMIZED_TABLE_TOKEN)
         story.extend(_paragraphs_for(before))
@@ -537,14 +625,12 @@ def generate_pdf_bytes(letter_text: str, disputed_rows: list = None) -> bytes:
         # a stray token if one slipped through with no rows to fill it.
         story.extend(_paragraphs_for(letter_text.replace(ITEMIZED_TABLE_TOKEN, "")))
 
-    def _footer(canvas, doc):
-        canvas.saveState()
-        canvas.setFont("Times-Roman", 8.5)
-        canvas.setFillColor(colors.HexColor("#6b7488"))
-        canvas.drawCentredString(LETTER_PAGESIZE[0] / 2, 0.55 * inch, f"Page {doc.page}")
-        canvas.restoreState()
+    header_kwargs = {"title": header_title, "kind_label": header_kind_label, "right_lines": header_right_lines}
 
-    doc.build(story, onFirstPage=_footer, onLaterPages=_footer)
+    def _make_canvas(*args, **kwargs):
+        return _LetterheadCanvas(*args, header_kwargs=header_kwargs, **kwargs)
+
+    doc.build(story, canvasmaker=_make_canvas)
     buffer.seek(0)
     return buffer.getvalue()
 
