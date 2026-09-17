@@ -152,6 +152,7 @@ async def create_letter(payload: dict):
         raise HTTPException(status_code=500, detail=str(e))
 
     audit_id = payload.get("audit_id")
+    disputed_rows = payload.get("disputed_rows", [])
     if audit_id:
         existing = audit_store.load_audit(audit_id) or {}
         existing["letter"] = letter
@@ -160,10 +161,10 @@ async def create_letter(payload: dict):
         existing["sender_city_state_zip"] = payload.get("sender_city_state_zip", "")
         existing["bill_date"] = payload.get("bill_date", "")
         existing["letter_date"] = payload.get("letter_date", "")
-        existing["disputed_rows"] = payload.get("disputed_rows", [])
+        existing["disputed_rows"] = disputed_rows
         audit_store.save_audit(audit_id, existing)
 
-    return {"letter": letter}
+    return {"letter": logic.render_letter_display_text(letter, disputed_rows)}
 
 
 @app.post("/api/save-addon-info")
@@ -185,13 +186,15 @@ async def save_addon_info(payload: dict):
 @app.post("/api/followup")
 async def create_followup(payload: dict):
     client = _client()
-    letter = logic.generate_followup_letter(client, payload.get("original_letter", ""), payload.get("original_date", ""))
+    disputed_rows = payload.get("disputed_rows", [])
+    letter = logic.generate_followup_letter(client, payload.get("original_letter", ""), payload.get("original_date", ""), disputed_rows)
     return {"letter": letter}
 
 
 @app.post("/api/insurance-appeal")
 async def create_insurance_appeal(payload: dict):
     client = _client()
+    disputed_rows = payload.get("disputed_rows", [])
     letter = logic.generate_insurance_appeal_letter(
         client,
         payload.get("sender_name", ""),
@@ -201,9 +204,9 @@ async def create_insurance_appeal(payload: dict):
         payload.get("member_id", ""),
         payload.get("claim_number", ""),
         payload.get("patient_name", ""),
-        payload.get("disputed_rows", []),
+        disputed_rows,
     )
-    return {"letter": letter}
+    return {"letter": logic.render_letter_display_text(letter, disputed_rows)}
 
 
 @app.post("/api/phone-script")
@@ -224,8 +227,10 @@ def _generate_addon_pdf(kind: str, audit: dict) -> bytes:
     patient_name = extracted.get("patient_name", "")
     if kind == "phone":
         text = logic.generate_phone_script(client, patient_name, extracted.get("account_number", ""), disputed_rows)
+        return logic.generate_pdf_bytes(text)
     elif kind == "followup":
-        text = logic.generate_followup_letter(client, audit.get("letter", ""), audit.get("letter_date", ""))
+        text = logic.generate_followup_letter(client, audit.get("letter", ""), audit.get("letter_date", ""), disputed_rows)
+        return logic.generate_pdf_bytes(text)
     elif kind == "insurance":
         text = logic.generate_insurance_appeal_letter(
             client,
@@ -238,9 +243,9 @@ def _generate_addon_pdf(kind: str, audit: dict) -> bytes:
             patient_name,
             disputed_rows,
         )
+        return logic.generate_pdf_bytes(text, disputed_rows)
     else:
         raise ValueError(f"Unknown add-on kind: {kind}")
-    return logic.generate_pdf_bytes(text)
 
 
 @app.post("/api/pdf")
@@ -263,7 +268,7 @@ async def create_pdf(payload: dict):
         letter_text = audit.get("letter", "")
         if not letter_text:
             raise HTTPException(status_code=404, detail="No letter found for this audit.")
-        pdf_bytes = logic.generate_pdf_bytes(letter_text)
+        pdf_bytes = logic.generate_pdf_bytes(letter_text, audit.get("disputed_rows"))
     else:
         if kind not in addons:
             raise HTTPException(status_code=403, detail="This add-on wasn't purchased for this audit.")
@@ -338,7 +343,7 @@ async def paddle_webhook(request: Request, paddle_signature: str = Header(defaul
                 audit = audit_store.load_audit(audit_id)
                 letter_text = (audit or {}).get("letter")
                 if letter_text:
-                    pdf_bytes = logic.generate_pdf_bytes(letter_text)
+                    pdf_bytes = logic.generate_pdf_bytes(letter_text, audit.get("disputed_rows"))
                     patient_name = (audit.get("extracted") or {}).get("patient_name", "")
                     extra_attachments = []
                     filenames = {"phone": "phone_negotiation_script.pdf", "followup": "followup_letter.pdf", "insurance": "insurance_appeal_letter.pdf"}
