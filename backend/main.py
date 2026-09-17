@@ -219,6 +219,41 @@ async def create_phone_script(payload: dict):
     return {"letter": script}
 
 
+def _letterhead_kwargs(kind: str, audit: dict) -> dict:
+    """Build the header/footer display info (name, address, a small summary
+    table) for the new letterhead style — purely presentational, drawn from
+    data we already collected. Doesn't touch what any letter says."""
+    extracted = audit.get("extracted") or {}
+    sender_name = audit.get("sender_name", "") or "[Your Name]"
+    sender_lines = [l for l in [audit.get("sender_address", ""), audit.get("sender_city_state_zip", "")] if l]
+    account_number = extracted.get("account_number", "")
+    provider_name = extracted.get("provider_name", "")
+    disputed_rows = audit.get("disputed_rows") or []
+    disputed_total = sum(r.get("billed", 0) for r in disputed_rows)
+
+    if kind == "letter":
+        summary_rows = []
+        if account_number:
+            summary_rows.append(("Account number", account_number))
+        if audit.get("bill_date"):
+            summary_rows.append(("Date of service", audit["bill_date"]))
+        if disputed_rows:
+            summary_rows.append(("Amount disputed", f"${disputed_total:.2f}"))
+        return {"header_title": sender_name, "header_kind_label": "Billing Dispute Letter",
+                "header_right_lines": sender_lines, "summary_rows": summary_rows}
+    if kind == "phone":
+        right = [f"{provider_name} · Acct {account_number}"] if (provider_name or account_number) else []
+        return {"header_title": "Phone Negotiation Script", "header_kind_label": "For the call",
+                "header_right_lines": right}
+    if kind == "followup":
+        return {"header_title": sender_name, "header_kind_label": "Follow-Up — send only after 30 days of silence",
+                "header_right_lines": sender_lines}
+    if kind == "insurance":
+        return {"header_title": sender_name, "header_kind_label": "Insurance Appeal",
+                "header_right_lines": sender_lines}
+    return {}
+
+
 def _generate_addon_pdf(kind: str, audit: dict) -> bytes:
     """Generate one purchased add-on document (phone script, follow-up
     letter, or insurance appeal letter) from stored audit data."""
@@ -226,12 +261,13 @@ def _generate_addon_pdf(kind: str, audit: dict) -> bytes:
     disputed_rows = audit.get("disputed_rows") or []
     extracted = audit.get("extracted") or {}
     patient_name = extracted.get("patient_name", "")
+    header_kwargs = _letterhead_kwargs(kind, audit)
     if kind == "phone":
         text = logic.generate_phone_script(client, patient_name, extracted.get("account_number", ""), disputed_rows)
-        return logic.generate_pdf_bytes(text)
+        return logic.generate_pdf_bytes(text, **header_kwargs)
     elif kind == "followup":
         text = logic.generate_followup_letter(client, audit.get("letter", ""), audit.get("letter_date", ""), disputed_rows)
-        return logic.generate_pdf_bytes(text)
+        return logic.generate_pdf_bytes(text, **header_kwargs)
     elif kind == "insurance":
         text = logic.generate_insurance_appeal_letter(
             client,
@@ -245,7 +281,7 @@ def _generate_addon_pdf(kind: str, audit: dict) -> bytes:
             disputed_rows,
             audit.get("letter_date", ""),
         )
-        return logic.generate_pdf_bytes(text, disputed_rows)
+        return logic.generate_pdf_bytes(text, disputed_rows, **header_kwargs)
     else:
         raise ValueError(f"Unknown add-on kind: {kind}")
 
@@ -270,7 +306,7 @@ async def create_pdf(payload: dict):
         letter_text = audit.get("letter", "")
         if not letter_text:
             raise HTTPException(status_code=404, detail="No letter found for this audit.")
-        pdf_bytes = logic.generate_pdf_bytes(letter_text, audit.get("disputed_rows"))
+        pdf_bytes = logic.generate_pdf_bytes(letter_text, audit.get("disputed_rows"), **_letterhead_kwargs("letter", audit))
     else:
         if kind not in addons:
             raise HTTPException(status_code=403, detail="This add-on wasn't purchased for this audit.")
@@ -345,7 +381,7 @@ async def paddle_webhook(request: Request, paddle_signature: str = Header(defaul
                 audit = audit_store.load_audit(audit_id)
                 letter_text = (audit or {}).get("letter")
                 if letter_text:
-                    pdf_bytes = logic.generate_pdf_bytes(letter_text, audit.get("disputed_rows"))
+                    pdf_bytes = logic.generate_pdf_bytes(letter_text, audit.get("disputed_rows"), **_letterhead_kwargs("letter", audit))
                     patient_name = (audit.get("extracted") or {}).get("patient_name", "")
                     extra_attachments = []
                     filenames = {"phone": "phone_negotiation_script.pdf", "followup": "followup_letter.pdf", "insurance": "insurance_appeal_letter.pdf"}
