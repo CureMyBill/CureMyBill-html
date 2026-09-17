@@ -715,10 +715,11 @@ def send_letter_email(to_email: str, patient_name: str, pdf_bytes: bytes, extra_
       </div>
     </div>
     """
+    subject = "Your CureMyBill Dispute Pack is ready" if extra_attachments else "Your CureMyBill dispute letter is ready"
     payload = {
         "from": from_address,
         "to": [to_email],
-        "subject": "Your CureMyBill dispute letter is ready",
+        "subject": subject,
         "html": html_body,
         "attachments": [
             {
