@@ -245,6 +245,10 @@ def _letterhead_kwargs(kind: str, audit: dict) -> dict:
         right = [f"{provider_name} · Acct {account_number}"] if (provider_name or account_number) else []
         return {"header_title": "Phone Negotiation Script", "header_kind_label": "For the call",
                 "header_right_lines": right}
+    if kind == "phone_es":
+        right = [f"{provider_name} · Acct {account_number}"] if (provider_name or account_number) else []
+        return {"header_title": "Phone Negotiation Script — Bilingual", "header_kind_label": "For the call — English / Español",
+                "header_right_lines": right}
     if kind == "followup":
         return {"header_title": sender_name, "header_kind_label": "Follow-Up — send only after 30 days of silence",
                 "header_right_lines": sender_lines}
@@ -264,6 +268,9 @@ def _generate_addon_pdf(kind: str, audit: dict) -> bytes:
     header_kwargs = _letterhead_kwargs(kind, audit)
     if kind == "phone":
         text = logic.generate_phone_script(client, patient_name, extracted.get("account_number", ""), disputed_rows)
+        return logic.generate_pdf_bytes(text, **header_kwargs)
+    elif kind == "phone_es":
+        text = logic.generate_phone_script_bilingual(client, patient_name, extracted.get("account_number", ""), disputed_rows)
         return logic.generate_pdf_bytes(text, **header_kwargs)
     elif kind == "followup":
         text = logic.generate_followup_letter(client, audit.get("letter", ""), audit.get("letter_date", ""), disputed_rows)
@@ -308,7 +315,8 @@ async def create_pdf(payload: dict):
             raise HTTPException(status_code=404, detail="No letter found for this audit.")
         pdf_bytes = logic.generate_pdf_bytes(letter_text, audit.get("disputed_rows"), **_letterhead_kwargs("letter", audit))
     else:
-        if kind not in addons:
+        required_addon = "phone" if kind == "phone_es" else kind
+        if required_addon not in addons:
             raise HTTPException(status_code=403, detail="This add-on wasn't purchased for this audit.")
         pdf_bytes = _generate_addon_pdf(kind, audit)
 
@@ -391,6 +399,11 @@ async def paddle_webhook(request: Request, paddle_signature: str = Header(defaul
                                 extra_attachments.append({"filename": filename, "content": _generate_addon_pdf(kind, audit)})
                             except Exception:
                                 pass  # don't let one add-on failure block the main letter email
+                    if "phone" in addons:
+                        try:
+                            extra_attachments.append({"filename": "phone_negotiation_script_bilingual.pdf", "content": _generate_addon_pdf("phone_es", audit)})
+                        except Exception:
+                            pass  # free bonus — never block the email over this
                     sent = logic.send_letter_email(customer_email, patient_name, pdf_bytes, extra_attachments)
                     if sent:
                         audit_store.mark_email_sent(audit_id)
