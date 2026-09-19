@@ -554,8 +554,7 @@ class _LetterheadCanvas(canvas.Canvas):
 
         self.setFont("Times-Roman", 8)
         self.setFillColor(_DOC_FOOTER_GRAY)
-        self.drawString(0.9 * inch, 0.6 * inch, "Prepared with CureMyBill · not medical or legal advice")
-        self.drawRightString(width - 0.9 * inch, 0.6 * inch, f"Page {self._pageNumber} of {total_pages}")
+        self.drawCentredString(width / 2, 0.6 * inch, f"Page {self._pageNumber} of {total_pages}")
         self.setStrokeColor(_DOC_LINE)
         self.setLineWidth(0.75)
         self.line(0.9 * inch, 0.72 * inch, width - 0.9 * inch, 0.72 * inch)
@@ -577,7 +576,7 @@ def generate_pdf_bytes(
         bottomMargin=0.95 * inch,
         leftMargin=0.9 * inch,
         rightMargin=0.9 * inch,
-        title="CureMyBill Document",
+        title=header_title or "Correspondence",
     )
     body_style = ParagraphStyle(
         "LetterBody", fontName="Times-Roman", fontSize=11, leading=17,
