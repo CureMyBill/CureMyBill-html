@@ -437,6 +437,31 @@ For a list of items, write each on its own line starting with the item name
 directly (no dash or bullet character needed).
 """
 
+PHONE_SCRIPT_BILINGUAL_SYSTEM_PROMPT = """You are an expert patient-advocacy
+assistant writing a SHORT, PRACTICAL BILINGUAL PHONE SCRIPT for a Spanish-
+speaking patient calling a US hospital billing department, where staff most
+likely speak English. This is a free companion to the English-only script —
+its purpose is to help the patient understand exactly what they're saying,
+even if their English isn't strong.
+
+Start with an opening line asking whether someone who speaks Spanish is
+available, or whether an interpreter line can be used — in English first
+(exactly as the patient should say it), then its Spanish translation on the
+next line in parentheses. Continue this same pattern for every single spoken
+line in the script: English line first, Spanish translation directly below
+it in parentheses. Cover the same steps as a normal negotiation call: stating
+the purpose, citing the specific overbilled line items, asking about a
+self-pay/cash discount or financial assistance/charity care program, and what
+to say if the representative pushes back. Keep it concise and actionable —
+this is a cheat sheet, not a formal document. Do not invent facts beyond what
+is given.
+
+This will be rendered as plain text in a PDF, not displayed as Markdown/HTML.
+Do NOT use any Markdown syntax: no #, ##, or ### headers, no ** or * for bold
+or italic, no --- or *** dividers, and no - or * bullet markers. For section
+titles, just write "1. Opening the call" etc. as plain text on its own line.
+"""
+
 
 def generate_phone_script(client: Anthropic, patient_name: str, account_number: str, disputed_rows: list) -> str:
     items_text = "\n".join(
@@ -460,6 +485,37 @@ assistance / charity care program the hospital may offer.
         model=MODEL,
         max_tokens=900,
         system=PHONE_SCRIPT_SYSTEM_PROMPT,
+        messages=[{"role": "user", "content": user_prompt}],
+    )
+    return "".join(block.text for block in response.content if block.type == "text")
+
+
+def generate_phone_script_bilingual(client: Anthropic, patient_name: str, account_number: str, disputed_rows: list) -> str:
+    """Free companion document to generate_phone_script: the same call,
+    with an English/Spanish line for every spoken part, so a Spanish-
+    speaking patient understands what they're saying on an English-language
+    call. Delivered as a separate PDF — the English-only script is unchanged."""
+    items_text = "\n".join(
+        f"- CPT {row['cpt_code']}: {row['description']} — billed ${row['billed']:.2f}, "
+        f"Medicare national rate ${row['medicare_rate']:.2f}"
+        for row in disputed_rows
+    )
+    user_prompt = f"""Write a bilingual (English/Spanish) phone negotiation
+script for this patient calling the hospital billing department:
+
+Patient name: {patient_name or "[Patient Name]"}
+Account number: {account_number or "[Account Number]"}
+
+Overbilled line items to mention:
+{items_text}
+
+Include a line asking about a self-pay/cash discount and any financial
+assistance / charity care program the hospital may offer.
+"""
+    response = client.messages.create(
+        model=MODEL,
+        max_tokens=1300,
+        system=PHONE_SCRIPT_BILINGUAL_SYSTEM_PROMPT,
         messages=[{"role": "user", "content": user_prompt}],
     )
     return "".join(block.text for block in response.content if block.type == "text")
@@ -758,6 +814,7 @@ def send_letter_email(to_email: str, patient_name: str, pdf_bytes: bytes, extra_
     ATTACHMENT_INFO = {
         "dispute_letter.pdf": ("Dispute Letter", "Addressed to your hospital's billing department — print and mail it."),
         "phone_negotiation_script.pdf": ("Phone Negotiation Script", "What to say when you call the billing department."),
+        "phone_negotiation_script_bilingual.pdf": ("Bilingual Phone Script (free)", "Same call, with the Spanish translation for every line."),
         "followup_letter.pdf": ("Follow-up Letter", "Send this only if you don't hear back within 30 days."),
         "insurance_appeal_letter.pdf": ("Insurance Appeal Letter", "Addressed to your insurance company's claims department."),
     }
