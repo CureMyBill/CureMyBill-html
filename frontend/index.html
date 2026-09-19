@@ -540,16 +540,16 @@
       letter_lang_note: "The letter itself is always written in English, since it's addressed to a US hospital — regardless of the site language.",
       unlock_cta: "Unlock your letter to download the PDF:",
       plan_standard: "Standard", plan_std_li1: "Complete dispute letter in PDF", plan_std_li2: "Ready to print and send", plan_std_btn: "Unlock — $19",
-      plan_pro: "Pro", plan_pro_badge: "Best value", price_unit: "one-time payment", plan_pro_li1: "Everything in Standard", plan_pro_li2: "Insurance Appeal Letter included", plan_pro_li3: "Phone Negotiation Script included", plan_pro_li4: "Save $20 vs. buying separately", plan_pro_li5: "Follow-up letter if no reply in 30 days", plan_pro_btn: "Unlock — $34",
+      plan_pro: "Pro", plan_pro_badge: "Best value", price_unit: "one-time payment", plan_pro_li1: "Everything in Standard", plan_pro_li2: "Insurance Appeal Letter included", plan_pro_li3: "Phone Negotiation Script included — plus a free bilingual English/Spanish version", plan_pro_li4: "Save $20 vs. buying separately", plan_pro_li5: "Follow-up letter if no reply in 30 days", plan_pro_btn: "Unlock — $34",
       addons_toggle: "Need a specific add-on instead?",
       trust_secure: "Secure checkout via Paddle", trust_instant: "Instant PDF delivery", trust_cards: "Cards & Apple Pay accepted",
       addon_insurance: "Insurance Appeal Letter — for a denied or underpaid claim",
-      addon_phone: "Phone Negotiation Script — what to say when you call billing",
+      addon_phone: "Phone Negotiation Script — what to say when you call billing (includes a free bilingual English/Spanish version)",
       addon_followup: "Follow-up Letter — if the hospital doesn't reply in 30 days",
       insurance_info_note: "Required for Pro or the Insurance Appeal Letter add-on — leave blank if you're not also appealing to your insurance company:",
       err_insurance_required: "Please fill in your insurance company name, member ID, and claim number — required for Pro / the Insurance Appeal Letter.",
       f_insurer_name: "Insurance company name", f_member_id: "Member ID", f_claim_number: "Claim number",
-      download_phone_btn: "Download phone script", download_followup_btn: "Download follow-up letter", download_insurance_btn: "Download insurance appeal letter",
+      download_phone_btn: "Download phone script", download_phone_es_btn: "Download bilingual script (free)", download_followup_btn: "Download follow-up letter", download_insurance_btn: "Download insurance appeal letter",
       download_pdf_btn: "⬇ Download the letter as PDF",
       confirming_payment: "Confirming your payment...",
       check_email_title: "Check your email!",
@@ -626,16 +626,16 @@
       letter_lang_note: "La carta siempre se redacta en inglés, ya que está dirigida a un hospital de EE. UU. — sin importar el idioma del sitio.",
       unlock_cta: "Desbloquee su carta para descargarla en PDF:",
       plan_standard: "Standard", plan_std_li1: "Carta de disputa completa en PDF", plan_std_li2: "Lista para imprimir y enviar", plan_std_btn: "Desbloquear — $19",
-      plan_pro: "Pro", plan_pro_badge: "Mejor valor", price_unit: "pago único", plan_pro_li1: "Todo lo incluido en Standard", plan_pro_li2: "Carta de apelación al seguro incluida", plan_pro_li3: "Guion de llamada telefónica incluido", plan_pro_li4: "Ahorra $20 comparado con comprar por separado", plan_pro_li5: "Carta de seguimiento si no hay respuesta en 30 días", plan_pro_btn: "Desbloquear — $34",
+      plan_pro: "Pro", plan_pro_badge: "Mejor valor", price_unit: "pago único", plan_pro_li1: "Todo lo incluido en Standard", plan_pro_li2: "Carta de apelación al seguro incluida", plan_pro_li3: "Guion de llamada telefónica incluido — con versión bilingüe inglés/español gratis", plan_pro_li4: "Ahorra $20 comparado con comprar por separado", plan_pro_li5: "Carta de seguimiento si no hay respuesta en 30 días", plan_pro_btn: "Desbloquear — $34",
       addons_toggle: "¿Necesita solo una opción específica?",
       trust_secure: "Pago seguro vía Paddle", trust_instant: "Entrega instantánea del PDF", trust_cards: "Tarjetas y Apple Pay aceptados",
       addon_insurance: "Carta de Apelación al Seguro — para un reclamo denegado o pagado de menos",
-      addon_phone: "Guion de Negociación Telefónica — qué decir al llamar a facturación",
+      addon_phone: "Guion de Negociación Telefónica — qué decir al llamar a facturación (incluye versión bilingüe inglés/español gratis)",
       addon_followup: "Carta de Seguimiento — si el hospital no responde en 30 días",
       insurance_info_note: "Obligatorio para Pro o el complemento de Carta de Apelación al Seguro — déjelo en blanco si no va a apelar también ante su seguro:",
       err_insurance_required: "Por favor complete el nombre de la aseguradora, el ID de miembro y el número de reclamo — obligatorio para Pro / la Carta de Apelación al Seguro.",
       f_insurer_name: "Nombre de la aseguradora", f_member_id: "ID de miembro", f_claim_number: "Número de reclamo",
-      download_phone_btn: "Descargar guion telefónico", download_followup_btn: "Descargar carta de seguimiento", download_insurance_btn: "Descargar carta de apelación al seguro",
+      download_phone_btn: "Descargar guion telefónico", download_phone_es_btn: "Descargar guion bilingüe (gratis)", download_followup_btn: "Descargar carta de seguimiento", download_insurance_btn: "Descargar carta de apelación al seguro",
       download_pdf_btn: "⬇ Descargar la carta en PDF",
       confirming_payment: "Confirmando su pago...",
       check_email_title: "¡Revise su correo electrónico!",
@@ -1024,6 +1024,7 @@
 
   const ADDON_LABELS = {
     phone: { filename: "phone_negotiation_script.pdf", key: "download_phone_btn", fallback: "Phone script" },
+    phone_es: { filename: "phone_negotiation_script_bilingual.pdf", key: "download_phone_es_btn", fallback: "Bilingual phone script (free)" },
     followup: { filename: "followup_letter.pdf", key: "download_followup_btn", fallback: "Follow-up letter" },
     insurance: { filename: "insurance_appeal_letter.pdf", key: "download_insurance_btn", fallback: "Insurance appeal letter" },
   };
@@ -1031,7 +1032,9 @@
   function renderAddonDownloadButtons(addons){
     const row = $("addon-download-row");
     row.innerHTML = "";
-    (addons || []).forEach(kind => {
+    const expanded = [...(addons || [])];
+    if (expanded.includes("phone")) expanded.push("phone_es");
+    expanded.forEach(kind => {
       const info = ADDON_LABELS[kind];
       if (!info) return;
       const btn = document.createElement("button");
