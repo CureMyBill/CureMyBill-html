@@ -449,6 +449,7 @@
         <div id="letter-unlocked-wrap" class="hidden">
           <div id="email-waiting" style="text-align:center; padding:20px 0;">
             <span class="spinner"></span> <span data-i18n="confirming_payment">Confirming your payment...</span>
+            <span id="prep-progress" class="mono" style="color:var(--ink-dim);"></span>
           </div>
           <div id="email-confirmed" class="hidden" style="text-align:center; padding:10px 0 20px;">
             <div style="margin-bottom:8px;"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2C6E9E" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></div>
@@ -954,7 +955,10 @@
     eventCallback: function(evt){
       if (evt.name === "checkout.completed"){
         unlockLetter();
-        setTimeout(() => { try { Paddle.Checkout.close(); } catch (e) {} }, 1500);
+        setTimeout(() => {
+          try { Paddle.Checkout.close(); } catch (e) {}
+          setTimeout(() => { $("letter-unlocked-wrap").scrollIntoView({ behavior: "smooth", block: "start" }); }, 200);
+        }, 1500);
       }
     }
   });
@@ -1059,6 +1063,7 @@
     $("email-waiting").classList.remove("hidden");
     $("email-confirmed").classList.add("hidden");
     showToast(T("toast_paid"), "success");
+    $("letter-unlocked-wrap").scrollIntoView({ behavior: "smooth", block: "start" });
 
     // Poll our backend for the resolved customer email (the Paddle webhook
     // resolves it server-side, which can take a few seconds after checkout).
@@ -1066,11 +1071,14 @@
     const maxAttempts = 10; // ~20 seconds
     const poll = async () => {
       attempts++;
+      const pct = Math.min(95, Math.round((attempts / maxAttempts) * 100));
+      $("prep-progress").textContent = ` ${pct}%`;
       try {
         const res = await fetch(API_BASE + "/api/payment-status/" + state.auditId);
         const data = await res.json();
         renderAddonDownloadButtons(data.addons);
         if (data.customer_email){
+          $("prep-progress").textContent = " 100%";
           $("confirmed-email").textContent = data.customer_email;
           $("email-waiting").classList.add("hidden");
           $("email-confirmed").classList.remove("hidden");
