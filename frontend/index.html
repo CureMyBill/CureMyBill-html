@@ -952,7 +952,10 @@
   Paddle.Initialize({
     token: PADDLE_CLIENT_TOKEN,
     eventCallback: function(evt){
-      if (evt.name === "checkout.completed"){ unlockLetter(); }
+      if (evt.name === "checkout.completed"){
+        unlockLetter();
+        setTimeout(() => { try { Paddle.Checkout.close(); } catch (e) {} }, 1500);
+      }
     }
   });
 
