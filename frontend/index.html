@@ -1066,10 +1066,14 @@
     $("letter-unlocked-wrap").scrollIntoView({ behavior: "smooth", block: "start" });
 
     // Poll our backend for the resolved customer email (the Paddle webhook
-    // resolves it server-side, which can take a few seconds after checkout).
+    // resolves it server-side — usually a few seconds, but sandbox/live
+    // delivery can occasionally take up to a minute).
     let attempts = 0;
-    const maxAttempts = 10; // ~20 seconds
+    let pollTimer = null;
+    let done = false;
+    const maxAttempts = 28; // ~56 seconds
     const poll = async () => {
+      if (done) return;
       attempts++;
       const pct = Math.min(95, Math.round((attempts / maxAttempts) * 100));
       $("prep-progress").textContent = ` ${pct}%`;
@@ -1078,6 +1082,7 @@
         const data = await res.json();
         renderAddonDownloadButtons(data.addons);
         if (data.customer_email){
+          done = true;
           $("prep-progress").textContent = " 100%";
           $("confirmed-email").textContent = data.customer_email;
           $("email-waiting").classList.add("hidden");
@@ -1086,8 +1091,9 @@
         }
       } catch (err){ /* keep trying */ }
       if (attempts < maxAttempts){
-        setTimeout(poll, 2000);
+        pollTimer = setTimeout(poll, 2000);
       } else {
+        done = true;
         // Couldn't confirm the email in time — don't leave the customer staring
         // at a spinner. Fall back to a generic message; the PDF button still works.
         $("email-waiting").classList.add("hidden");
@@ -1095,6 +1101,15 @@
         $("confirmed-email").parentElement.innerHTML = T("check_email_generic");
       }
     };
+    // If the tab was backgrounded (mobile browsers throttle timers there),
+    // check right away as soon as it's visible again instead of waiting for
+    // the next throttled tick.
+    document.addEventListener("visibilitychange", () => {
+      if (!done && document.visibilityState === "visible"){
+        clearTimeout(pollTimer);
+        poll();
+      }
+    });
     poll();
   }
 
