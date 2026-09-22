@@ -31,7 +31,11 @@ def _init_database():
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # tighten this to your real domain once deployed
+    allow_origins=[
+        "https://curemybill.us",
+        "https://www.curemybill.us",
+        "https://curemybill-api.onrender.com",
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
 )
