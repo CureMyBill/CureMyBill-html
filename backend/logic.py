@@ -42,7 +42,7 @@ def _items_plain_text(disputed_rows: list) -> str:
     return "\n".join(
         f"- CPT {row['cpt_code']}: {row['description']} — billed ${row['billed']:.2f}, "
         f"Medicare national rate ${row['medicare_rate']:.2f}"
-        + (f" (+{row['difference_pct']}% above the Medicare rate)" if "difference_pct" in row else "")
+        + (f" (+{row['difference_pct']}% above the Medicare rate)" if row.get("difference_pct") is not None else "")
         for row in disputed_rows
     )
 
@@ -71,7 +71,7 @@ def _build_items_table(disputed_rows: list) -> Table:
     ]
     data = [header]
     for row in disputed_rows:
-        over_by = f"+{row['difference_pct']}%" if "difference_pct" in row else ""
+        over_by = f"+{row['difference_pct']}%" if row.get("difference_pct") is not None else ""
         data.append([
             Paragraph(xml_escape(str(row.get("cpt_code", ""))), cell_style),
             Paragraph(xml_escape(str(row.get("description", ""))), cell_style),
