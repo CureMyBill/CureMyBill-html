@@ -25,7 +25,7 @@ FEE_SCHEDULE_PATH = os.path.join(os.path.dirname(__file__), "fee_schedule.csv")
 NPI_REGISTRY_URL = "https://npiregistry.cms.hhs.gov/api/"
 TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 RESEND_API_URL = "https://api.resend.com/emails"
-PADDLE_API_BASE = "https://sandbox-api.paddle.com"  # Sandbox — switch to api.paddle.com when going Live
+PADDLE_API_BASE = "https://api.paddle.com"  # Live
 
 # A letter can't hand the AI model responsibility for laying out a clean
 # table of dollar amounts — LLM-written "tables" in prose render as an
